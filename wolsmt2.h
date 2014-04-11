@@ -3,6 +3,7 @@
 
 #include "wolexp.h"
 #include "wolmgr.h"
+#include "wolexpfactory.h"
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -12,7 +13,7 @@ namespace wolver {
 class WolSmt2Parser {
 
 public : // constructor and destructor 
-	WolSmt2Parser(WolMgr *mgr, FILE *input_file);
+	WolSmt2Parser(WolMgr *mgr, WolExpFactory *factory, FILE *input_file);
 	~WolSmt2Parser();
 
 
@@ -211,13 +212,16 @@ public : // local classes
 	class WolSMT2Node {
 	public:
 		WolSMT2Node(std::string name, WolSMT2Tag type) :
-			_name(name), _type(type) {}
+			_name(name), _type(type) {
+         _exp = NULL;
+         _next = NULL;
+      }
 	   	~WolSMT2Node();			
 
 		std::string getName() {return _name;}
 		WolSMT2Tag getType() {return _type;}
 		unsigned getBound() {return _bound;}
-	   	WolNode* getExp() {return _exp;}
+	   WolNode* getWolNode() {return _exp;}
 		WolSMT2Node *getNext() {return _next;}
 
 		void setType(WolSMT2Tag type) {_type = type;}
@@ -229,14 +233,25 @@ public : // local classes
 	private: 
 		std::string _name;
 		WolSMT2Tag _type;
-	   	unsigned _bound:1;
+	  	unsigned _bound:1;
 		std::pair<int,int> _coo;
 		WolNode *_exp;
-	   	WolSMT2Node *_next;
+	  	WolSMT2Node *_next;
 	};
 
+   class commandsData {
+   public:
+      int all;
+      int set_logic;
+      int asserts;
+      int check_sat;
+      int exits;
+   };
+
+
 public : //functions
-	void parse();
+	int parse();
+   void print();
 
 
 private : // functions
@@ -245,9 +260,9 @@ private : // functions
 	void wol_insert_reserved_words_smt2();
 	void wol_insert_commands_smt2();
 	void wol_insert_core_symbols_smt2();
-   	void wol_insert_smt2(std::string str, WolSMT2Tag type);
-        void wol_insert_bitvec_symbols_smt2();
-        void wol_insert_logics_smt2();
+  	void wol_insert_smt2(std::string str, WolSMT2Tag type);
+   void wol_insert_bitvec_symbols_smt2();
+   void wol_insert_logics_smt2();
 	int wol_read_command_smt2();
 	int wol_read_token_smt2();
 	int wol_read_token_aux_smt2();
@@ -255,9 +270,23 @@ private : // functions
 	int wol_nextch_smt2();
 	unsigned char wol_cc_smt2(int ch);
 	void wol_insert_symbol_smt2(WolSMT2Node *node);
-
+   int wol_read_rpar_smt2(const char *msg);
+   int wol_read_lpar_smt2(const char *msg);
+   int wol_read_symbol(const char *str);
+   int wol_declare_fun_smt2();
+   int wol_set_info_smt2();
+   int wol_parse_bitvec_sort_smt2(int skiplu, int &width);
+   int wol_parse_bitvec_term_smt2(int type, WolNode*& exp);
+   int wol_parse_logic_term_smt2(int type, WolNode*& exp);
+   int wol_parse_underscore_term_smt2(WolNode*& exp);
+   int wol_parse_let_binding_smt2(WolNode*& exp);
+   int wol_parse_term_smt2(WolNode*& exp);
+   int wol_parse_bv_const_smt2(WolNode*& exp);   
+   int wol_skip_sexprs(); 
+   
 private : // data
 	WolMgr *_mgr;
+   WolExpFactory *_factory;
 	FILE *_file;
 	char *_name;
 	std::vector<unsigned char> _cc;
@@ -267,6 +296,10 @@ private : // data
 	WolSMT2Node *_lastNode;
 	bool _saved;
 	int _savedch;
+   commandsData commands;   
+   std::vector<WolNode *> _inputs; 
+   std::vector<WolNode *> _outputs;
+   std::unordered_map<std::string, std::vector<WolNode*>* > _letMap;
 	// symbol table	
 
 };

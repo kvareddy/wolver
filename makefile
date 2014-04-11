@@ -30,7 +30,7 @@ libwolver.a: $(LIBOBJ)
 	ranlib $@
 
 clean:
-	rm -f $(TARGETS)
+#	rm -f $(TARGETS)
 	rm -f dependencies
 	rm -f *.gcda *.gcno *.gcov *.gch *.plist
 	rm -f log/*.log *.tmp
