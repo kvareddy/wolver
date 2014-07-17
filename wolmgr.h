@@ -5,26 +5,43 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <algorithm>
+#include <memory>
 
 namespace wolver {
 
 using namespace std;
 
+class WolValueFactory;
+class WolEvalFactory;
+
 class WolMgr {
 
-public:
+public: //singleton
+   static WolMgr& getInstance()
+   {
+      static WolMgr instance;
+      return instance;
+   }
+
+private:
    WolMgr() {}
    ~WolMgr() {}
+   WolMgr(WolMgr const&);
+   void operator= (WolMgr const&);
 
 public:  // methods
-   void insertUniqueSliceExpr(WolNode *exp){ _uniqSliceExpTable.insert(exp); }
-   WolNode *findSliceExpr(WolNode *exp);
-   void insertUniqueExpr(WolNode *exp) {_uniqExpTable.insert(exp);}
-   WolNode *findUniqueExpr(WolNode *exp);
-   void insertConstExpr(WolNode *exp) {_uniqConstTable[exp->getName()] = exp;}
-   WolNode *findConstExpr(std::string string);
-   void insertIdExpr(WolNode *exp);
-   WolNode *findExpr(int id);
+   void insertUniqueSliceExpr(WolNodeSptr exp){ _uniqSliceExpTable.insert(exp); }
+   WolNodeSptr findSliceExpr(WolNodeSptr exp);
+   void insertUniqueExpr(WolNodeSptr exp) {_uniqExpTable.insert(exp);}
+   WolNodeSptr findUniqueExpr(WolNodeSptr exp);
+   void insertConstExpr(WolNodeSptr exp) {_uniqConstTable[exp->getName()] = exp;}
+   WolNodeSptr findConstExpr(std::string string);
+   void insertIdExpr(WolNodeSptr exp);
+   WolNodeSptr findExpr(int id);   
+   void setWolValueFactory(WolValueFactory *valueFactory) {_valueFactory = valueFactory;}
+   void setWolEvalFactory(WolEvalFactory *evalFactory) {_evalFactory = evalFactory;}
+   WolValueFactory *getValueFactory() {return _valueFactory;}
+   WolEvalFactory  *getEvalFactory() {return _evalFactory;}
 
 private: // methods
 
@@ -32,12 +49,12 @@ private: // methods
 private: // data
 
 struct sliceExpEqualTo
-    : std::binary_function<WolNode *, WolNode *, bool>
+    : std::binary_function<WolNodeSptr, WolNodeSptr, bool>
 {
-   bool operator()(const WolNode* const& x, const WolNode* const& y) const
+   bool operator()(WolNodeSptr const& x, WolNodeSptr const& y) const
    {
-      const WolComplexNode *x_comp = dynamic_cast<const WolComplexNode *>(x);
-      const WolComplexNode *y_comp = dynamic_cast<const WolComplexNode *>(y);
+      WolComplexNodeSptr x_comp = dynamic_pointer_cast<WolComplexNode>(x);
+      WolComplexNodeSptr y_comp = dynamic_pointer_cast<WolComplexNode>(y);
       
       if(((x_comp->getChildren()[0]) != (y_comp->getChildren())[0]) ||
          (x_comp->getHighPrecision() != y_comp->getHighPrecision()) ||
@@ -49,12 +66,12 @@ struct sliceExpEqualTo
 };
 
 struct sliceExpHash
-    : std::unary_function<WolNode *, std::size_t>
+    : std::unary_function<WolNodeSptr, std::size_t>
 {
-   std::size_t operator()(const WolNode* const& x) const
+   std::size_t operator()(WolNodeSptr const& x) const
    {
       std::size_t seed = 0;
-      const WolComplexNode *x_comp = dynamic_cast<const WolComplexNode *>(x);
+      WolComplexNodeSptr x_comp = dynamic_pointer_cast<WolComplexNode>(x);
       seed = (size_t)((x_comp->getChildren())[0]->getId() + x_comp->getHighPrecision() +
               x_comp->getLowPrecision());   
       return seed;
@@ -62,12 +79,12 @@ struct sliceExpHash
 };
 
 struct expEqualTo
-    : std::binary_function<WolNode *, WolNode *, bool>
+    : std::binary_function<WolNodeSptr, WolNodeSptr, bool>
 {
-   bool operator()(const WolNode* const& x, const WolNode* const& y) const
+   bool operator()(WolNodeSptr const& x, WolNodeSptr const& y) const
    {
-      const WolComplexNode *x_comp = dynamic_cast<const WolComplexNode *>(x);
-      const WolComplexNode *y_comp = dynamic_cast<const WolComplexNode *>(y);
+      WolComplexNodeSptr x_comp = dynamic_pointer_cast<WolComplexNode>(x);
+      WolComplexNodeSptr y_comp = dynamic_pointer_cast<WolComplexNode>(y);
       
       if ((x_comp->getType() != y_comp->getType()) ||
           (x_comp->getArity() != y_comp->getArity()))
@@ -84,12 +101,12 @@ struct expEqualTo
 };
 
 struct expHash
-    : std::unary_function<WolNode *, std::size_t>
+    : std::unary_function<WolNodeSptr, std::size_t>
 {
-   std::size_t operator()(const WolNode* const& x) const
+   std::size_t operator()(WolNodeSptr const& x) const
    {
       std::size_t seed = 0;
-      const WolComplexNode *x_comp = dynamic_cast<const WolComplexNode *>(x);
+      WolComplexNodeSptr x_comp = dynamic_pointer_cast<WolComplexNode>(x);
 
       int arity = x_comp->getArity();
       for (int i = 0; i < arity; i++) 
@@ -100,11 +117,16 @@ struct expHash
    }
 };
 
-std::unordered_map<std::string, WolNode *> _uniqConstTable;
-std::unordered_set<WolNode *, sliceExpHash, sliceExpEqualTo> _uniqSliceExpTable;
-std::unordered_set<WolNode *, expHash, expEqualTo> _uniqExpTable;
-std::unordered_map<int, WolNode *> _idToExpMap;
+std::unordered_map<std::string, WolNodeSptr> _uniqConstTable;
+std::unordered_set<WolNodeSptr, sliceExpHash, sliceExpEqualTo> _uniqSliceExpTable;
+std::unordered_set<WolNodeSptr, expHash, expEqualTo> _uniqExpTable;
+std::unordered_map<int, WolNodeSptr> _idToExpMap;
 int _globalId;
+WolValueFactory *_valueFactory; 
+WolEvalFactory  *_evalFactory;
+
+
+
 };
 
 }

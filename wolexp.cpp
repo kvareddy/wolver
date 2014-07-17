@@ -3,6 +3,7 @@
 #include <iostream>
 #include <assert.h>
 #include <string.h>
+#include <memory>
 
 namespace wolver {
 
@@ -16,66 +17,107 @@ WolNode::WolNode(WolNodeType type, int precision)
    // need to implement the singleton pattern for accessing manager.   
 }
 
-void WolNode::addParent(WolNode *node) {
-   _parents.push_back(node);
-
+void WolNode::addParent(WolNodeSptr node) {
+    WolNodeWptr temp = node;
+   _parents.push_back(temp);
 }
 
-WolComplexNode::WolComplexNode(WolNodeType type, int precision, WolNode *child) 
-                : WolNode(type, precision), _highPrec(0), _lowPrec(0)
+void WolNode::deleteInvalidParents() {
+      
+   auto i = _parents.begin();
+   while (i != _parents.end()) {
+      if (i->expired()) {
+         i = _parents.erase(i); 
+         continue;
+      }
+      ++i;
+   }
+}
+
+std::vector<WolNodeWptr> WolNode::getParents(){
+   deleteInvalidParents();
+   return _parents;
+}
+
+bool WolNode::wol_is_const_zero_or_ones_expr(){
+   if(!wol_is_bv_const_node())
+      return false;
+         
+   if ((_name[0] == '0' && (_name.find('1') == std::string::npos)) || 
+       (_name[0] == '1' && (_name.find('0') == std::string::npos)))
+      return true;
+
+   return false;
+}
+
+bool WolNode::wol_is_const_one_expr() {
+   
+   if(!wol_is_bv_const_node())
+      return false;
+
+   if (_name[0] == '1' && (_name.find('1',1) == std::string::npos))
+      return true;
+
+   return false;
+} 
+
+WolComplexNode::WolComplexNode(WolNodeType type,
+                               int precision, 
+                               WolNodeSptr child) 
+                : WolNode(type, precision), 
+                  _highPrec(0),
+                  _lowPrec(0)
 {
    _children[0] = child;
-   child->incRefCount();
-   child->addParent(this);
    _arity = 1;
 }
 
-WolComplexNode::WolComplexNode(WolNodeType type, int precision, WolNode *child1, WolNode *child2) 
-                : WolNode(type, precision), _highPrec(0), _lowPrec(0)
+WolComplexNode::WolComplexNode(WolNodeType type,
+                               int precision,
+                               WolNodeSptr child1,
+                               WolNodeSptr child2) 
+                : WolNode(type, precision), 
+                  _highPrec(0), 
+                  _lowPrec(0)
 {
    _children[0] = child1;
-   child1->incRefCount();
-   child1->addParent(this);
    _children[1] = child2;
-   child2->incRefCount();
-   child2->addParent(this);
    _arity = 2;
 }
 
-WolComplexNode::WolComplexNode(WolNodeType type, int precision, int high_prec, 
-                               int low_prec, WolNode *child1) 
-                : WolNode(type, precision), _highPrec(high_prec), _lowPrec(low_prec)
+WolComplexNode::WolComplexNode(WolNodeType type, 
+                               int precision, 
+                               int high_prec, 
+                               int low_prec,
+                               WolNodeSptr child1) 
+                : WolNode(type, precision), 
+                  _highPrec(high_prec), 
+                  _lowPrec(low_prec)
 {
    _children[0] = child1;
-   child1->incRefCount(); 
-   child1->addParent(this);
    _arity = 1;
 }
 
-WolComplexNode::WolComplexNode(WolNodeType type, int precision,
-                  WolNode *child1, WolNode *child2, WolNode *child3)
-               : WolNode(type, precision), _highPrec(0), _lowPrec(0)
+WolComplexNode::WolComplexNode(WolNodeType type, 
+                               int precision,
+                               WolNodeSptr child1, 
+                               WolNodeSptr child2, 
+                               WolNodeSptr child3)
+               : WolNode(type, precision), 
+                 _highPrec(0), 
+                 _lowPrec(0)
 
 {
    _children[0] = child1;
-   child1->incRefCount(); 
-   child1->addParent(this);
    _children[1] = child2;
-   child2->incRefCount();
-   child2->addParent(this);
    _children[2] = child3;
-   child3->incRefCount();
-   child3->addParent(this);
    _arity = 3;
 }
 
-void WolComplexNode::release() {
-   _refCount--;
+WolComplexNode::~WolComplexNode() {
    
-   if (_refCount <= 0) {
-      for (int i = 0; i < _arity; i++) 
-         _children[i]->release();
-      delete this;
+   for (int i = 0; i < _arity; i++) {
+      _children[i].reset();
    }
 }
 
@@ -90,11 +132,52 @@ void WolComplexNode::print() {
    
 }
 
-void WolComplexNode::setChildren(WolNode *child, int index) {
+void WolComplexNode::setChildren(WolNodeSptr child, int index) {
    assert(index >= 0);
    assert(index <= 2);
    _children[index] = child;
 }
+
+bool WolComplexNode::wol_is_xor_expr(){
+   //checking fori the case:
+   // 1. !(!a && !b) && !(a && b)
+   // can be further improved
+   if (!wol_is_and_node())
+      return false;
+   
+   if (!(_children[0]->wol_is_not_node() && 
+         _children[0]->getChild(0)->wol_is_and_node()))
+      return false;
+        
+   if (!(_children[1]->wol_is_not_node() && 
+         _children[1]->getChild(0)->wol_is_and_node()))
+      return false;
+  
+   WolNodeSptr expr0_0 = getChild(0)->getChild(0)->getChild(0);
+   WolNodeSptr expr0_1 = getChild(0)->getChild(0)->getChild(1);
+   WolNodeSptr expr1_0 = getChild(1)->getChild(0)->getChild(0);
+   WolNodeSptr expr1_1 = getChild(1)->getChild(0)->getChild(1);
+
+   if ((expr0_0->wol_is_not_node() && (expr0_0->getChild(0) == expr1_0)) &&
+       (expr0_1->wol_is_not_node() && (expr0_1->getChild(0) == expr1_1)))
+      return true; 
+
+  return false;  
+}
+
+bool WolComplexNode::wol_is_xnor_expr(){
+
+   if (wol_is_not_node() && getChild(0)->wol_is_xor_expr())
+      return true;
+   
+   return false;
+}
+
+
+
+
+
+
 
 }
 

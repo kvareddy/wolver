@@ -1,19 +1,24 @@
 #ifndef WOLSMT2PARSER_H_INCLUDED
 #define WOLSMT2PARSER_H_INCLUDED
 
-#include "wolexp.h"
-#include "wolmgr.h"
-#include "wolexpfactory.h"
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <memory>
+#include "common.h"
 
 namespace wolver {
+
+class WolNode;
+class WolComplexNode;
+class WolMgr;
+class WolExpFactory;
+
 
 class WolSmt2Parser {
 
 public : // constructor and destructor 
-	WolSmt2Parser(WolMgr *mgr, WolExpFactory *factory, FILE *input_file);
+	WolSmt2Parser(FILE *input_file);
 	~WolSmt2Parser();
 
 
@@ -221,13 +226,13 @@ public : // local classes
 		std::string getName() {return _name;}
 		WolSMT2Tag getType() {return _type;}
 		unsigned getBound() {return _bound;}
-	   WolNode* getWolNode() {return _exp;}
+	   WolNodeSptr getWolNode() {return _exp;}
 		WolSMT2Node *getNext() {return _next;}
 
 		void setType(WolSMT2Tag type) {_type = type;}
 		void setName(std::string name) {_name = name;}
 		void setBound(unsigned bound) {_bound = bound;}
-		void setWolNode(WolNode *exp) {_exp = exp;}
+		void setWolNode(WolNodeSptr exp) {_exp = exp;}
 		void setNextNode(WolSMT2Node *next) {_next = next;}
 
 	private: 
@@ -235,7 +240,7 @@ public : // local classes
 		WolSMT2Tag _type;
 	  	unsigned _bound:1;
 		std::pair<int,int> _coo;
-		WolNode *_exp;
+		WolNodeSptr _exp;
 	  	WolSMT2Node *_next;
 	};
 
@@ -276,17 +281,15 @@ private : // functions
    int wol_declare_fun_smt2();
    int wol_set_info_smt2();
    int wol_parse_bitvec_sort_smt2(int skiplu, int &width);
-   int wol_parse_bitvec_term_smt2(int type, WolNode*& exp);
-   int wol_parse_logic_term_smt2(int type, WolNode*& exp);
-   int wol_parse_underscore_term_smt2(WolNode*& exp);
-   int wol_parse_let_binding_smt2(WolNode*& exp);
-   int wol_parse_term_smt2(WolNode*& exp);
-   int wol_parse_bv_const_smt2(WolNode*& exp);   
+   int wol_parse_bitvec_term_smt2(int type, WolNodeSptr& exp);
+   int wol_parse_logic_term_smt2(int type, WolNodeSptr& exp);
+   int wol_parse_underscore_term_smt2(WolNodeSptr& exp);
+   int wol_parse_let_binding_smt2(WolNodeSptr& exp);
+   int wol_parse_term_smt2(WolNodeSptr& exp);
+   int wol_parse_bv_const_smt2(WolNodeSptr& exp);   
    int wol_skip_sexprs(); 
    
 private : // data
-	WolMgr *_mgr;
-   WolExpFactory *_factory;
 	FILE *_file;
 	char *_name;
 	std::vector<unsigned char> _cc;
@@ -297,9 +300,9 @@ private : // data
 	bool _saved;
 	int _savedch;
    commandsData commands;   
-   std::vector<WolNode *> _inputs; 
-   std::vector<WolNode *> _outputs;
-   std::unordered_map<std::string, std::vector<WolNode*>* > _letMap;
+   std::vector<WolNodeSptr> _inputs; 
+   std::vector<WolNodeSptr> _outputs;
+   std::unordered_map<std::string, std::vector<WolNodeSptr>* > _letMap;
 	// symbol table	
 
 };

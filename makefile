@@ -3,7 +3,7 @@
 MAKEFLAGS=-j $(if $(CORES),$(CORES),1)
 CC=g++
 INCS=
-CFLAGS=-W -Wall -Wextra -O3 -std=c++11 -g3 -ggdb
+CFLAGS=-W -Wall -Wextra -Wunused-parameter -O3 -std=c++11 -g3 -ggdb
 OBJS=
 LIBS=
 LDEPS=

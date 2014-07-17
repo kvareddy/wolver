@@ -1,16 +1,18 @@
 #include "wolsmt2.h"
 #include "wolmgr.h"
+#include "wolexpfactory.h"
 #include <iostream>
 #include <stdio.h>
 #include <assert.h>
 #include <string>
+#include <memory>
 
 namespace wolver{
 
 using namespace std;
 
-WolSmt2Parser::WolSmt2Parser(WolMgr *mgr, WolExpFactory *factory, FILE *file)
-		: _mgr(mgr), _factory(factory), _file(file)
+WolSmt2Parser::WolSmt2Parser(FILE *file)
+		: _file(file)
 {
 	_saved = 0;
 	_cc.assign(256, 0);
@@ -85,9 +87,7 @@ void WolSmt2Parser::wol_insert_smt2(std::string str, WolSMT2Tag type) {
 
 void WolSmt2Parser::wol_insert_symbol_smt2(WolSMT2Node *node) {
 
-   //cout << node->getName() << endl;
 	_symbolTable[node->getName()] = node;
-	//_symbolTable.insert(std::make_pair<std::string, WolSMT2Node*>(node->getName(), node));	
 }
 
 
@@ -278,8 +278,6 @@ int wol_isspace_smt2(int ch) {
 int WolSmt2Parser::wol_read_token_aux_smt2() {
 
 	int ch;
-	//if (!_token.empty())
-//		std::cout << _token << std::endl;
 	_token.clear();
 	_lastNode = NULL;
 		
@@ -532,10 +530,8 @@ int WolSmt2Parser::wol_read_token_aux_smt2() {
 			_token.push_back(ch);
 		}
 		wol_savech_smt2 (ch);
-//		_token.push_back(0);
 		if (_token.compare("_") == 0) return WOL_UNDERSCORE_TAG_SMT2;
 	
-  //    cout << _token	<< "  " << _symbolTable.size() << endl;
 		std::unordered_map<std::string, WolSMT2Node*>::const_iterator it = _symbolTable.find(_token);
 		WolSMT2Node *node;
       
@@ -675,7 +671,7 @@ int WolSmt2Parser::wol_declare_fun_smt2 () {
    }
    if (type == WOL_BOOL_TAG_SMT2) { 
       width = 1;
-      varNode->setWolNode(_factory->makeVarExpr(width, varNode->getName()));
+      varNode->setWolNode(WolExpFactory::getInstance().makeVarExpr(width, varNode->getName()));
    }
    else {
       if (type != WOL_LPAR_TAG_SMT2) {
@@ -690,23 +686,22 @@ int WolSmt2Parser::wol_declare_fun_smt2 () {
       }
       if (type == WOL_UNDERSCORE_TAG_SMT2) {
          if (!wol_parse_bitvec_sort_smt2 (1, width)) return 0;
-         varNode->setWolNode(_factory->makeVarExpr(width, varNode->getName()));
+         varNode->setWolNode(WolExpFactory::getInstance().makeVarExpr(width, varNode->getName()));
       }
       else {
          cout << "expected '_' at " << _token << endl;
          return 0;
       }
   }
-  varNode->getWolNode()->incRefCount(); 
   _inputs.push_back(varNode->getWolNode()); 
   return wol_read_rpar_smt2 (" to close declaration");
 
 }
 
-int WolSmt2Parser::wol_parse_bitvec_term_smt2(int type, WolNode*& exp) {
+int WolSmt2Parser::wol_parse_bitvec_term_smt2(int type, WolNodeSptr& exp) {
          
-   WolNode* (WolExpFactory:: *unary_func) (WolNode *);
-   WolNode* (WolExpFactory:: *binary_func) (WolNode *, WolNode *); 
+   WolNodeSptr (WolExpFactory:: *unary_func) (WolNodeSptr);
+   WolNodeSptr (WolExpFactory:: *binary_func) (WolNodeSptr, WolNodeSptr); 
 
    if (type == WOL_BITVEC_TAG_SMT2) {
       cout << "unexpected symbol bitvec" << endl;
@@ -827,38 +822,31 @@ int WolSmt2Parser::wol_parse_bitvec_term_smt2(int type, WolNode*& exp) {
       assert(0);
    }
 
-   WolExpFactory factory(_mgr);
    if (type == WOL_BVNEG_TAG_SMT2 || type == WOL_BVNOT_TAG_SMT2) {
-       WolNode *exp1 = 0;
+       WolNodeSptr exp1;
        if(!wol_parse_term_smt2(exp1))  
            return 0;
-       exp = (factory.*unary_func)(exp1); 
-       exp1->release(); 
+       exp = (WolExpFactory::getInstance().*unary_func)(exp1); 
    }
    else {
-      WolNode *exp1 = 0, *exp2 = 0;
+      WolNodeSptr exp1, exp2;
       if(!wol_parse_term_smt2(exp1))
          return 0;
       if(!wol_parse_term_smt2(exp2)) {
-         exp1->release();
          return 0;
       }
       if (exp1->getWidth() != exp2->getWidth()) {
-          exp1->release();
-          exp2->release();
           return 0;
       }
          
-      exp = (factory.*binary_func)(exp1, exp2);
-      exp1->release();
-      exp2->release();      
+      exp = (WolExpFactory::getInstance().*binary_func)(exp1, exp2);
    }
    return 1;
 }
 
-int WolSmt2Parser::wol_parse_logic_term_smt2(int type, WolNode*& exp) {
+int WolSmt2Parser::wol_parse_logic_term_smt2(int type, WolNodeSptr& exp) {
    
-   WolNode* exp1 = 0;
+   WolNodeSptr exp1 = 0;
    int result = 0;
 
    if (type == WOL_BOOL_TAG_SMT2) {
@@ -866,12 +854,12 @@ int WolSmt2Parser::wol_parse_logic_term_smt2(int type, WolNode*& exp) {
       return result;
    }
    else if (type == WOL_TRUE_TAG_SMT2) {
-      exp = _factory->makeTrueExpr();
+      exp = WolExpFactory::getInstance().makeTrueExpr();
       if(!wol_read_rpar_smt2("")) return result;
       result = 1;
    }
    else if (type == WOL_FALSE_TAG_SMT2) {
-      exp = _factory->makeFalseExpr();
+      exp = WolExpFactory::getInstance().makeFalseExpr();
       if(!wol_read_rpar_smt2("")) return result;
       result = 1;
    }
@@ -884,20 +872,18 @@ int WolSmt2Parser::wol_parse_logic_term_smt2(int type, WolNode*& exp) {
          cout << "unexpected bit-vector of width" << exp->getWidth() << "as argument to 'not'"  << endl;
          return result;  
       }
-      exp = _factory->makeNotExpr(exp1);
-      exp1->release();
+      exp = WolExpFactory::getInstance().makeNotExpr(exp1);
       if(!wol_read_rpar_smt2("after single argument")) return result;
       result = 1;   
    }
    else if (type == WOL_ITE_TAG_SMT2) {
-      WolNode *exp2 = 0, *exp3= 0;   
+      WolNodeSptr exp2, exp3;   
       if (!wol_parse_term_smt2(exp1)) {
          cout << "expected three arguments for 'ite' operator" << endl;
          return result;
       }   
       if (!wol_parse_term_smt2(exp2)){
          cout << "expected three arguments for 'ite' operator" << endl;   
-         exp1->release();   
          return result;
       }      
       if (!wol_parse_term_smt2(exp3)){
@@ -911,28 +897,22 @@ int WolSmt2Parser::wol_parse_logic_term_smt2(int type, WolNode*& exp) {
          cout << "second argument of 'ite' is bit-vector of width" << exp2->getWidth() << "third argument is bit"            "vector of width" << exp3->getWidth() << endl; 
       }   
       else {
-         exp = _factory->makeCondExpr(exp1, exp2, exp3);
+         exp = WolExpFactory::getInstance().makeCondExpr(exp1, exp2, exp3);
          result = 1;   
       }   
-      exp1->release();
-      exp2->release();
-      exp3->release();
       if(!wol_read_rpar_smt2("after ITE arguments")) return result;   
    }    
    else { 
       // collect parametric number of arguments
       std::string op = _token;
-      std::vector<WolNode*> args;
-      WolNode* arg = 0;
+      std::vector<WolNodeSptr> args;
+      WolNodeSptr arg = 0;
       while (wol_parse_term_smt2(arg)) {
          args.push_back(arg);
          arg = 0;   
       }   
       if (_token.compare(")0")) {
          cout << "expected token ')'" << endl;
-         for(WolNode* arg : args) {
-            arg->release();
-         }   
          return result;   
       }   
 
@@ -945,48 +925,40 @@ int WolSmt2Parser::wol_parse_logic_term_smt2(int type, WolNode*& exp) {
 
       if (nargs == 1) {
          cout << " minimum two arguments are expected for operator" << op << endl;
-         args.front()->release();
          return result;
       }
    
       int width = args[0]->getWidth();
       int del_exp = 0;
-      for (WolNode* arg : args) {
+      for (WolNodeSptr arg : args) {
          if (arg->getWidth() != width){
             cout << "arguments are of different widths for the operator " << op << endl;   
             del_exp = 1;
          }
       }
       if (del_exp) {
-         for(WolNode* arg : args) {
-            arg->release();
-         }
          return result;
       }             
 
-      WolNode *temp = 0;
-      WolNode *old = 0;
+      WolNodeSptr temp;
+      WolNodeSptr old;
       if (type == WOL_DISTINCT_TAG_SMT2) {
-         exp = _factory->makeTrueExpr();
+         exp = WolExpFactory::getInstance().makeTrueExpr();
          for (int i = 0; i < (nargs-1); i++) {
             for(int j = i + 1; j < nargs; j++) {
-               temp = _factory->makeNeExpr(args[i], args[j]);
+               temp = WolExpFactory::getInstance().makeNeExpr(args[i], args[j]);
                old = exp;
-               exp = _factory->makeAndExpr(old, temp);
-               old->release();
-               temp->release();            
+               exp = WolExpFactory::getInstance().makeAndExpr(old, temp);
             }
          }
          result = 1;      
       }
       else if (type == WOL_EQUAL_TAG_SMT2) {
-         exp = _factory->makeTrueExpr();
+         exp = WolExpFactory::getInstance().makeTrueExpr();
          for (int i = 0; i < (nargs-1); i++) {
-            temp = _factory->makeEqExpr(args[i], args[i + 1]);
+            temp = WolExpFactory::getInstance().makeEqExpr(args[i], args[i + 1]);
             old = exp;
-            exp = _factory->makeAndExpr(old, temp);
-            old->release();
-            temp->release();
+            exp = WolExpFactory::getInstance().makeAndExpr(old, temp);
          }
          result = 1;
       }
@@ -1001,8 +973,7 @@ int WolSmt2Parser::wol_parse_logic_term_smt2(int type, WolNode*& exp) {
                for (int i = nargs-1; i >= 0; i--) {
                   if (exp) {
                      old = exp;
-                     exp = _factory->makeImpliesExpr(args[i], old);
-                     old->release();
+                     exp = WolExpFactory::getInstance().makeImpliesExpr(args[i], old);
                   }
                   else {
                      exp = args[i];
@@ -1014,8 +985,7 @@ int WolSmt2Parser::wol_parse_logic_term_smt2(int type, WolNode*& exp) {
                for (int i = 0; i < nargs; i++) {
                   if (exp) {
                      old = exp;
-                     exp = _factory->makeAndExpr(old, args[i]);
-                     old->release();
+                     exp = WolExpFactory::getInstance().makeAndExpr(old, args[i]);
                   }
                   else {
                      exp = args[i];
@@ -1027,8 +997,7 @@ int WolSmt2Parser::wol_parse_logic_term_smt2(int type, WolNode*& exp) {
                for (int i = 0; i < nargs; i++) {
                   if (exp) {
                      old = exp;
-                     exp = _factory->makeOrExpr(old, args[i]);
-                     old->release();
+                     exp = WolExpFactory::getInstance().makeOrExpr(old, args[i]);
                   }
                   else {
                      exp = args[i];
@@ -1040,8 +1009,7 @@ int WolSmt2Parser::wol_parse_logic_term_smt2(int type, WolNode*& exp) {
                for (int i = 0; i < nargs; i++) {
                   if (exp) {
                      old = exp;
-                     exp = _factory->makeXorExpr(old, args[i]);
-                     old->release();
+                     exp = WolExpFactory::getInstance().makeXorExpr(old, args[i]);
                   }
                   else {
                      exp = args[i];
@@ -1055,20 +1023,17 @@ int WolSmt2Parser::wol_parse_logic_term_smt2(int type, WolNode*& exp) {
             result = 1;
          }
       }
-      for(WolNode* arg : args) {
-         arg->release();
-      }
    }
 
    return result;   
 }
 
-int WolSmt2Parser::wol_parse_underscore_term_smt2(WolNode*& exp) {
+int WolSmt2Parser::wol_parse_underscore_term_smt2(WolNodeSptr& exp) {
    
    int term_type = wol_read_token_smt2();
    int type;
    int high, low, param;
-   WolNode *exp1 = 0;
+   WolNodeSptr exp1;
    if (term_type == EOF || term_type == WOL_INVALID_TAG_SMT2) {
       cout << "unexpected end-of-file or invalid token" << endl;
       return 0;
@@ -1120,8 +1085,7 @@ int WolSmt2Parser::wol_parse_underscore_term_smt2(WolNode*& exp) {
          if(!wol_parse_term_smt2(exp1))
             return 0;
 
-         exp = _factory->makeSliceExpr(exp1, high, low);
-         exp1->release();   
+         exp = WolExpFactory::getInstance().makeSliceExpr(exp1, high, low);
          return 1;
          break;
          
@@ -1159,31 +1123,30 @@ int WolSmt2Parser::wol_parse_underscore_term_smt2(WolNode*& exp) {
          return 0;
    }
    
-   WolNode *exp2 = 0;
+   WolNodeSptr exp2;
    if(!wol_parse_term_smt2(exp2))
       return 0;
 
    switch (term_type) {
       case WOL_REPEAT_TAG_SMT2 :
-         exp = _factory->makeRepeatExpr(exp2, param);
+         exp = WolExpFactory::getInstance().makeRepeatExpr(exp2, param);
          break;     
       case WOL_ZERO_EXTEND_TAG_SMT2 :
-         exp = _factory->makeUextExpr(exp2, param);
+         exp = WolExpFactory::getInstance().makeUextExpr(exp2, param);
          break;
       case WOL_SIGN_EXTEND_TAG_SMT2 :
-         exp = _factory->makeSextExpr(exp2, param);
+         exp = WolExpFactory::getInstance().makeSextExpr(exp2, param);
          break;
       case WOL_ROTATE_LEFT_TAG_SMT2 :
-         exp = _factory->makeRolExpr(exp2, param);
+         exp = WolExpFactory::getInstance().makeRolExpr(exp2, param);
          break;
       case WOL_ROTATE_RIGHT_TAG_SMT2 :
-         exp = _factory->makeRorExpr(exp2, param);
+         exp = WolExpFactory::getInstance().makeRorExpr(exp2, param);
          break;
       default :
          assert(0); 
    }
    
-   exp2->release();
    return 1; 
 }
 
@@ -1199,7 +1162,7 @@ int WolSmt2Parser::wol_parse_underscore_term_smt2(WolNode*& exp) {
                 |     ( WOL_LET_TAG_SMT2 ( <var_binding>+ ) <term> )
 */
 
-int WolSmt2Parser::wol_parse_let_binding_smt2(WolNode*& exp) {
+int WolSmt2Parser::wol_parse_let_binding_smt2(WolNodeSptr& exp) {
    
    int type = wol_read_token_smt2();
    int result = 1;
@@ -1235,14 +1198,14 @@ int WolSmt2Parser::wol_parse_let_binding_smt2(WolNode*& exp) {
          break;
       }   
       else {
-         WolNode *tmp = 0; 
+         WolNodeSptr tmp; 
          if (!wol_parse_term_smt2(tmp)) { 
             result = 0;
             break;       
          }
          
          if (_letMap.find(letToken) == _letMap.end())
-            _letMap[letToken] = new std::vector<WolNode *>();      
+            _letMap[letToken] = new std::vector<WolNodeSptr>();      
          _letMap.find(letToken)->second->push_back(tmp); 
             
          currStrings.push_back(letToken);      
@@ -1264,8 +1227,7 @@ int WolSmt2Parser::wol_parse_let_binding_smt2(WolNode*& exp) {
    }
 
    for(auto i : currStrings) {
-      std::vector<WolNode *> *iv = _letMap.find(i)->second;
-      iv->back()->release();
+      std::vector<WolNodeSptr> *iv = _letMap.find(i)->second;
       iv->pop_back();
       if (iv->empty()) {
           delete iv;  
@@ -1308,7 +1270,7 @@ static std::string convert_dec_to_bin(std::string s) {
    return binarys;
 }
 
-int WolSmt2Parser::wol_parse_bv_const_smt2(WolNode*& exp) {
+int WolSmt2Parser::wol_parse_bv_const_smt2(WolNodeSptr& exp) {
    
    int type = wol_read_token_smt2();
    if (type == EOF || type == WOL_INVALID_TAG_SMT2) {
@@ -1342,27 +1304,26 @@ int WolSmt2Parser::wol_parse_bv_const_smt2(WolNode*& exp) {
       return 0;
    }
    else if(length == width) {
-      exp = _factory->makeConstExpr(constString, 2);
+      exp = WolExpFactory::getInstance().makeConstExpr(constString, 2);
    }   
    else if(!length) {
-      exp = _factory->makeZeroExpr(width);
+      exp = WolExpFactory::getInstance().makeZeroExpr(width);
    }
    else {
       std::string temp(width -length, '0');
       constString =  (temp + constString);
-      exp = _factory->makeConstExpr(constString, 2);
+      exp = WolExpFactory::getInstance().makeConstExpr(constString, 2);
       assert(exp != NULL);
    }
          
    if(!wol_read_rpar_smt2("after bv constant")) {
-      exp->release();
       return 0;
    }
       
    return 1;
 }
 
-int WolSmt2Parser::wol_parse_term_smt2(WolNode*& exp) {
+int WolSmt2Parser::wol_parse_term_smt2(WolNodeSptr& exp) {
 
    int type = wol_read_token_smt2();
    
@@ -1372,11 +1333,11 @@ int WolSmt2Parser::wol_parse_term_smt2(WolNode*& exp) {
 
       _token.pop_back();
       if (type == WOL_BINARY_CONSTANT_TAG_SMT2) {
-         exp = _factory->makeConstExpr(_token.substr(2), 2);   
+         exp = WolExpFactory::getInstance().makeConstExpr(_token.substr(2), 2);   
          return 1;       
       }
       else if (type == WOL_HEXADECIMAL_CONSTANT_TAG_SMT2) {
-         exp = _factory->makeConstExpr(_token.substr(2), 16);
+         exp = WolExpFactory::getInstance().makeConstExpr(_token.substr(2), 16);
          return 1;
       }
       else {
@@ -1401,11 +1362,11 @@ int WolSmt2Parser::wol_parse_term_smt2(WolNode*& exp) {
       }
    }
    else if (type == WOL_TRUE_TAG_SMT2) {
-      exp = _factory->makeTrueExpr();
+      exp = WolExpFactory::getInstance().makeTrueExpr();
       return 1;
    }
    else if (type == WOL_FALSE_TAG_SMT2) {
-      exp = _factory->makeFalseExpr();
+      exp = WolExpFactory::getInstance().makeFalseExpr();
       return 1;
    }
    else if (type == WOL_LPAR_TAG_SMT2){
@@ -1423,13 +1384,11 @@ int WolSmt2Parser::wol_parse_term_smt2(WolNode*& exp) {
          type = wol_read_token_smt2();
          if (type == EOF || type == WOL_INVALID_TAG_SMT2) {
             cout << "unexpected end-of-file or invalid token" << endl;
-            exp->release();   
             return 0;
          }
 
          if (type != WOL_RPAR_TAG_SMT2) {
             cout << "wrong number of arguements for operator" << op << endl;
-            exp->release();   
             return 0;  
          }              
       }
@@ -1456,13 +1415,11 @@ int WolSmt2Parser::wol_parse_term_smt2(WolNode*& exp) {
          type = wol_read_token_smt2();
          if (type == EOF || type == WOL_INVALID_TAG_SMT2) {
             cout << "unexpected end-of-file or invalid token" << endl;
-            exp->release();
             return 0;
          }
          
          if (type != WOL_RPAR_TAG_SMT2) {
             cout << "wrong number of arguments for underscore operator" << endl;
-            exp->release();
             return 0;
          }            
                                         
@@ -1554,9 +1511,6 @@ int WolSmt2Parser::wol_read_token_smt2() {
 
 	_lastcoo = _coo;
 	int res = wol_read_token_aux_smt2();
-	// printing utils
-//   if (!_token.empty())
-//      std::cout << _token << std::endl;
 	return res;
 }
 
@@ -1565,7 +1519,7 @@ int WolSmt2Parser::wol_read_command_smt2() {
 
 	int type;
 	int _error = 0;
-   WolNode *exp = 0;
+   WolNodeSptr exp = 0;
 
 	type = wol_read_token_smt2();
 	if (type == EOF || type == WOL_INVALID_TAG_SMT2) return _error;
