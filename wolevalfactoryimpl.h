@@ -38,6 +38,7 @@ public:
 public : //methods
 
    WolValueSptr evalOp(evalMap &emap, WolValueSptr val1, WolValueSptr val2);
+   WolValueSptr evalOp(evalMap &emap, WolValueSptr val1, WolValueSptr val2, bool flag);
    WolValueSptr evalAnd(WolValueSptr val1, WolValueSptr val2);
    WolValueSptr evalBeq(WolValueSptr val1, WolValueSptr val2);
    WolValueSptr evalAdd(WolValueSptr val1, WolValueSptr val2);
@@ -51,9 +52,54 @@ public : //methods
    WolValueSptr evalSplice(WolValueSptr val, int upper, int lower);
    WolValueSptr evalUnion(WolValueSptr val1, WolValueSptr val2);
    WolValueSptr evalIntersection(WolValueSptr val1, WolValueSptr val2);
+   WolValueSptr evalDiff(WolValueSptr val1, WolValueSptr val2);
    WolValueSptr evalCompliment(WolValueSptr val);
+   WolValueSptr evalCond(WolValueSptr cond, WolValueSptr val1, WolValueSptr val2);
+
+
+   WolValueSptr evalUltB(WolValueSptr op_val, WolValueSptr operand_val, bool implyLeft);
+   WolValueSptr evalAndB(WolValueSptr op_val, WolValueSptr operand_val);
+   WolValueSptr evalBeqB(WolValueSptr op_val, WolValueSptr operand_val);
+   WolValueSptr evalConcatB(WolValueSptr op_val, WolValueSptr operand_val, bool implyLeft);
+   WolValueSptr evalSpliceB(WolValueSptr op_val, int upper, int lower, int width);
+   // position = 0 => backward implication for bool condition
+   // position = 1 => backward implication for if branch
+   // position = 2 => backward implication for else branch
+   WolValueSptr evalCondB(WolValueSptr op_val, WolValueSptr operand_val1,
+                          WolValueSptr operand_val2, int position);
+
 
 private : //methods
+
+   WolValueImplSptr evalOpInt(evalMap &emap, WolValueImplSptr val1, WolValueImplSptr val2);
+   WolValueImplSptr evalOpInt(evalMap &emap, WolValueImplSptr val1, WolValueImplSptr val2, bool flag);
+   WolValueImplSptr evalAndInt(WolValueImplSptr val1, WolValueImplSptr val2);
+   WolValueImplSptr evalBeqInt(WolValueImplSptr val1, WolValueImplSptr val2);
+   WolValueImplSptr evalAddInt(WolValueImplSptr val1, WolValueImplSptr val2);
+   WolValueImplSptr evalMulInt(WolValueImplSptr val1, WolValueImplSptr val2);
+   WolValueImplSptr evalUltInt(WolValueImplSptr val1, WolValueImplSptr val2);
+   WolValueImplSptr evalSllInt(WolValueImplSptr val1, WolValueImplSptr val2);
+   WolValueImplSptr evalSrlInt(WolValueImplSptr val1, WolValueImplSptr val2);
+   WolValueImplSptr evalUdivInt(WolValueImplSptr val1, WolValueImplSptr val2);
+   WolValueImplSptr evalUremInt(WolValueImplSptr val1, WolValueImplSptr val2);
+   WolValueImplSptr evalConcatInt(WolValueImplSptr val1, WolValueImplSptr val2);
+   WolValueImplSptr evalSpliceInt(WolValueImplSptr val, int upper, int lower);
+   WolValueImplSptr evalUnionInt(WolValueImplSptr val1, WolValueImplSptr val2);
+   WolValueImplSptr evalIntersectionInt(WolValueImplSptr val1, WolValueImplSptr val2);
+   WolValueImplSptr evalComplimentInt(WolValueImplSptr val);
+   WolValueImplSptr evalCondInt(WolValueImplSptr cond, WolValueImplSptr val1, WolValueImplSptr val2);
+
+
+   WolValueImplSptr evalUltBInt(WolValueImplSptr op_val, WolValueImplSptr operand_val, bool implyLeft);
+   WolValueImplSptr evalAndBInt(WolValueImplSptr op_val, WolValueImplSptr operand_val);
+   WolValueImplSptr evalBeqBInt(WolValueImplSptr op_val, WolValueImplSptr operand_val);
+   WolValueImplSptr evalConcatBInt(WolValueImplSptr op_val, WolValueImplSptr operand_val, bool implyLeft);
+   WolValueImplSptr evalSpliceBInt(WolValueImplSptr op_val, int upper, int lower, int width);
+   // position = 0 => backward implication for Bool condition
+   // position = 1 => backward implication for if branch
+   // position = 2 => backward implication for else branch
+   WolValueImplSptr evalCondBInt(WolValueImplSptr op_val, WolValueImplSptr operand_val1,
+                                 WolValueImplSptr operand_val2, int position);
 
    evalFunctionPtr lookup(evalMap &emap, WolValueImpl::WolValueImplType type1, 
                           WolValueImpl::WolValueImplType type2);
@@ -66,7 +112,6 @@ private : //methods
    void initializeBeqEvalMap();
    void initializeAddEvalMap();
    void initializeMulEvalMap();
-   void initializeUltEvalMap();
    void initializeSllEvalMap();
    void initializeSrlEvalMap();
    void initializeUdivEvalMap();
@@ -76,6 +121,8 @@ private : //methods
    void initializeUnionEvalMap();
    void initializeIntersectionEvalMap();
    void initializeComplimentMap();
+
+   void initializeAndBEvalMap();;
 
    // primary functions for AND operator evaluation
    WolValueImplSptr evalBoolAndBool(WolValueImplSptr val1, 
@@ -132,51 +179,9 @@ private : //methods
                                     WolValueImplSptr val2);
    WolValueImplSptr evalConstBeqConst(WolValueImplSptr val1, 
                                       WolValueImplSptr val2);
-   WolValueImplSptr evalConstBeqRange(WolValueImplSptr val1, 
-                                      WolValueImplSptr val2);
-   WolValueImplSptr evalConstBeqUnion(WolValueImplSptr val1, 
-                                      WolValueImplSptr val2);
-   WolValueImplSptr evalConstBeqConcat(WolValueImplSptr val1, 
-                                       WolValueImplSptr val2);
-   WolValueImplSptr evalRangeBeqRange(WolValueImplSptr val1, 
-                                      WolValueImplSptr val2);
-   WolValueImplSptr evalRangeBeqUnion(WolValueImplSptr val1, 
-                                      WolValueImplSptr val2);
-   WolValueImplSptr evalRangeBeqConcat(WolValueImplSptr val1, 
-                                       WolValueImplSptr val2);
-   WolValueImplSptr evalUnionBeqUnion(WolValueImplSptr val1,
-                                      WolValueImplSptr val2); 
-   WolValueImplSptr evalUnionBeqConcat(WolValueImplSptr val1,
-                                       WolValueImplSptr val2);
-   WolValueImplSptr evalConcatBeqConcat(WolValueImplSptr val1,
-                                        WolValueImplSptr val2);
+   WolValueImplSptr evalNonConstBeq(WolValueImplSptr val1,
+                                   WolValueImplSptr val2);
    
-   // symmetric functions for BEQ operator
-   WolValueImplSptr evalRangeBeqConst(WolValueImplSptr val1,
-                                      WolValueImplSptr val2) {
-      return evalConstBeqRange(val2, val1);
-   }
-   WolValueImplSptr evalUnionBeqConst(WolValueImplSptr val1,
-                                      WolValueImplSptr val2) {
-      return evalConstBeqUnion(val2, val1);
-   }
-   WolValueImplSptr evalConcatBeqConst(WolValueImplSptr val1,
-                                       WolValueImplSptr val2) {
-      return evalConstBeqConcat(val2, val1);
-   }
-   WolValueImplSptr evalUnionBeqRange(WolValueImplSptr val1,
-                                      WolValueImplSptr val2) {
-      return evalRangeBeqUnion(val2, val1);
-   }
-   WolValueImplSptr evalConcatBeqRange(WolValueImplSptr val1,
-                                       WolValueImplSptr val2) {
-      return evalRangeBeqConcat(val2, val1);
-   }
-   WolValueImplSptr evalConcatBeqUnion(WolValueImplSptr val1,
-                                       WolValueImplSptr val2) {
-      return evalUnionBeqConcat(val2, val1);
-   }
-
    // primary functions for ADD operator evaluation
    WolValueImplSptr evalBoolAddBool(WolValueImplSptr val1, 
                                     WolValueImplSptr val2);
@@ -276,42 +281,6 @@ private : //methods
                                        WolValueImplSptr val2) {
       return evalUnionMulConcat(val2, val1);
    }
-
-   // primary functions for ULT operator evaluation
-   WolValueImplSptr evalBoolUltBool(WolValueImplSptr val1, 
-                                    WolValueImplSptr val2);
-   WolValueImplSptr evalConstUltConst(WolValueImplSptr val1, 
-                                      WolValueImplSptr val2);
-   WolValueImplSptr evalConstUltRange(WolValueImplSptr val1, 
-                                      WolValueImplSptr val2);
-   WolValueImplSptr evalConstUltUnion(WolValueImplSptr val1, 
-                                      WolValueImplSptr val2);
-   WolValueImplSptr evalConstUltConcat(WolValueImplSptr val1, 
-                                       WolValueImplSptr val2);
-   WolValueImplSptr evalRangeUltRange(WolValueImplSptr val1, 
-                                      WolValueImplSptr val2);
-   WolValueImplSptr evalRangeUltUnion(WolValueImplSptr val1, 
-                                      WolValueImplSptr val2);
-   WolValueImplSptr evalRangeUltConcat(WolValueImplSptr val1, 
-                                       WolValueImplSptr val2);
-   WolValueImplSptr evalUnionUltUnion(WolValueImplSptr val1,
-                                      WolValueImplSptr val2); 
-   WolValueImplSptr evalUnionUltConcat(WolValueImplSptr val1,
-                                       WolValueImplSptr val2);
-   WolValueImplSptr evalConcatUltConcat(WolValueImplSptr val1,
-                                        WolValueImplSptr val2);
-   WolValueImplSptr evalRangeUltConst(WolValueImplSptr val1,
-                                      WolValueImplSptr val2); 
-   WolValueImplSptr evalUnionUltConst(WolValueImplSptr val1,
-                                      WolValueImplSptr val2); 
-   WolValueImplSptr evalConcatUltConst(WolValueImplSptr val1,
-                                       WolValueImplSptr val2); 
-   WolValueImplSptr evalUnionUltRange(WolValueImplSptr val1,
-                                      WolValueImplSptr val2); 
-   WolValueImplSptr evalConcatUltRange(WolValueImplSptr val1,
-                                       WolValueImplSptr val2); 
-   WolValueImplSptr evalConcatUltUnion(WolValueImplSptr val1,
-                                       WolValueImplSptr val2); 
 
      // primary functions for SLL operator evaluation
    WolValueImplSptr evalBoolSllBool(WolValueImplSptr val1, 
@@ -462,35 +431,7 @@ private : //methods
                                     WolValueImplSptr val2);
    WolValueImplSptr evalConstConcatConst(WolValueImplSptr val1, 
                                       WolValueImplSptr val2);
-   WolValueImplSptr evalConstConcatRange(WolValueImplSptr val1, 
-                                      WolValueImplSptr val2);
-   WolValueImplSptr evalConstConcatUnion(WolValueImplSptr val1, 
-                                      WolValueImplSptr val2);
-   WolValueImplSptr evalConstConcatConcat(WolValueImplSptr val1, 
-                                       WolValueImplSptr val2);
-   WolValueImplSptr evalRangeConcatRange(WolValueImplSptr val1, 
-                                      WolValueImplSptr val2);
-   WolValueImplSptr evalRangeConcatUnion(WolValueImplSptr val1, 
-                                      WolValueImplSptr val2);
-   WolValueImplSptr evalRangeConcatConcat(WolValueImplSptr val1, 
-                                       WolValueImplSptr val2);
-   WolValueImplSptr evalUnionConcatUnion(WolValueImplSptr val1,
-                                      WolValueImplSptr val2); 
-   WolValueImplSptr evalUnionConcatConcat(WolValueImplSptr val1,
-                                       WolValueImplSptr val2);
-   WolValueImplSptr evalConcatConcatConcat(WolValueImplSptr val1,
-                                        WolValueImplSptr val2);
-   WolValueImplSptr evalRangeConcatConst(WolValueImplSptr val1,
-                                      WolValueImplSptr val2);
-   WolValueImplSptr evalUnionConcatConst(WolValueImplSptr val1,
-                                      WolValueImplSptr val2);
-   WolValueImplSptr evalConcatConcatConst(WolValueImplSptr val1,
-                                       WolValueImplSptr val2);
-   WolValueImplSptr evalUnionConcatRange(WolValueImplSptr val1,
-                                      WolValueImplSptr val2);
-   WolValueImplSptr evalConcatConcatRange(WolValueImplSptr val1,
-                                       WolValueImplSptr val2);
-   WolValueImplSptr evalConcatConcatUnion(WolValueImplSptr val1,
+   WolValueImplSptr evalNonConstConcat(WolValueImplSptr val1,
                                        WolValueImplSptr val2);
 
    // primary functions for UNION operator evaluation
@@ -608,6 +549,43 @@ private : //methods
    WolValueImplSptr evalUnionCompliment(WolValueImplSptr val);
    WolValueImplSptr evalConcatCompliment(WolValueImplSptr val);
 
+
+   // functions for  Backward AND evaluation
+   WolValueImplSptr evalBackBoolAndBool(WolValueImplSptr op_val,
+                                    WolValueImplSptr operand_val);
+   WolValueImplSptr evalBackConstAndConst(WolValueImplSptr op_val,
+                                      WolValueImplSptr operand_val);
+   WolValueImplSptr evalBackConstAndRange(WolValueImplSptr op_val,
+                                      WolValueImplSptr operand_val);
+   WolValueImplSptr evalBackConstAndUnion(WolValueImplSptr op_val,
+                                      WolValueImplSptr operand_val);
+   WolValueImplSptr evalBackConstAndConcat(WolValueImplSptr op_val,
+                                       WolValueImplSptr operand_val);
+   WolValueImplSptr evalBackRangeAndRange(WolValueImplSptr op_val,
+                                      WolValueImplSptr operand_val);
+   WolValueImplSptr evalBackRangeAndUnion(WolValueImplSptr op_val,
+                                      WolValueImplSptr operand_val);
+   WolValueImplSptr evalBackRangeAndConcat(WolValueImplSptr op_val,
+                                       WolValueImplSptr operand_val);
+   WolValueImplSptr evalBackUnionAndUnion(WolValueImplSptr op_val,
+                                      WolValueImplSptr operand_val);
+   WolValueImplSptr evalBackUnionAndConcat(WolValueImplSptr op_val,
+                                       WolValueImplSptr operand_val);
+   WolValueImplSptr evalBackConcatAndConcat(WolValueImplSptr op_val,
+                                        WolValueImplSptr operand_val);
+   WolValueImplSptr evalBackRangeAndConst(WolValueImplSptr op_val,
+                                      WolValueImplSptr operand_val);
+   WolValueImplSptr evalBackUnionAndConst(WolValueImplSptr op_val,
+                                      WolValueImplSptr operand_val);
+   WolValueImplSptr evalBackConcatAndConst(WolValueImplSptr op_val,
+                                       WolValueImplSptr operand_val);
+   WolValueImplSptr evalBackUnionAndRange(WolValueImplSptr op_val,
+                                      WolValueImplSptr operand_val);
+   WolValueImplSptr evalBackConcatAndRange(WolValueImplSptr op_val,
+                                       WolValueImplSptr operand_val);
+   WolValueImplSptr evalBackConcatAndUnion(WolValueImplSptr op_val,
+                                       WolValueImplSptr operand_val);
+
 private : //data
   
    // map for each operator.
@@ -615,7 +593,6 @@ private : //data
    evalMap _beqEvalMap;
    evalMap _addEvalMap;
    evalMap _mulEvalMap;
-   evalMap _ultEvalMap;
    evalMap _sllEvalMap;
    evalMap _srlEvalMap;
    evalMap _udivEvalMap;
@@ -625,6 +602,8 @@ private : //data
    evalMap _unionEvalMap;
    evalMap _intersectionEvalMap;
    eval1Map _complimentEvalMap; 
+
+   evalMap _andBEvalMap;
 
 };
 

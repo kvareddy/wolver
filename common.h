@@ -2,6 +2,10 @@
 #define COMMON_H_INCLUDED
 
 #include <memory>
+#include <boost/dynamic_bitset.hpp>
+#include <vector>
+#include <set>
+
 namespace wolver {
 
 class WolNode;
@@ -35,6 +39,20 @@ typedef std::shared_ptr<WolUnionValueImpl> WolUnionValueImplSptr;
 typedef std::weak_ptr<WolUnionValueImpl> WolUnionValueImplWptr;
 typedef std::shared_ptr<WolConcatValueImpl> WolConcatValueImplSptr;
 typedef std::weak_ptr<WolConcatValueImpl> WolConcatValueImplWptr;
+typedef boost::dynamic_bitset<> dbitset;
+typedef std::set<WolNodeSptr> nodeL;
+
+#define makeBoolImpl(x) std::make_shared<WolBoolValueImpl>(x);
+#define makeConstImpl(x) std::make_shared<WolConstValueImpl>(x);
+#define makeRangeImpl(x) std::make_shared<WolRangeValueImpl>(x);
+#define makeRangeImpl2(x, y) std::make_shared<WolRangeValueImpl>(x, y);
+#define makeUnionImpl(x) std::make_shared<WolUnionValueImpl>(x);
+#define makeConcatImpl(x) std::make_shared<WolConcatValueImpl>(x);
+#define dBoolCast(x) std::dynamic_pointer_cast<WolBoolValueImpl>(x);
+#define dConstCast(x) std::dynamic_pointer_cast<WolConstValueImpl>(x);
+#define dRangeCast(x) std::dynamic_pointer_cast<WolRangeValueImpl>(x);
+#define dUnionCast(x) std::dynamic_pointer_cast<WolUnionValueImpl>(x);
+#define dConcatCast(x) std::dynamic_pointer_cast<WolConcatValueImpl>(x);
 
 }
 

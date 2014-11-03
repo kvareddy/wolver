@@ -1,5 +1,7 @@
-#include  "wolexp.h"
 #include "wolmgr.h"
+#include "wolevalfactory.h"
+#include "wolvaluefactory.h"
+#include "wolvalue.h"
 #include <iostream>
 #include <assert.h>
 #include <string.h>
@@ -10,10 +12,15 @@ namespace wolver {
 using namespace std;
 
 WolNode::WolNode(WolNodeType type, int precision) 
-      : _type(type), _precision(precision)
+      : _type(type),
+        _precision(precision),
+         _implyFlag(false),
+        _value(nullptr),
+        _svalue(nullptr)
 {
    _arity = 0;
    _refCount = 1;
+   _id = 0;
    // need to implement the singleton pattern for accessing manager.   
 }
 
@@ -60,6 +67,201 @@ bool WolNode::wol_is_const_one_expr() {
 
    return false;
 } 
+
+std::vector<WolNodeSptr>
+WolNode::getNeighbors() {
+  std::vector<WolNodeSptr> retValue;
+  for (auto i :_parents)
+       retValue.push_back(i.lock());
+
+  return retValue;
+}
+
+WolValueSptr
+WolNode::performBackwardImplication(WolNodeSptr p,
+                                    WolValueSptr parentValue,
+                                    WolValueSptr operand1 = nullptr,
+                                    WolValueSptr operand2 = nullptr) {
+
+  WolEvalFactory *evalFactory = WolMgr::getInstance().getEvalFactory();
+  WolValueFactory *valueFactory = WolMgr::getInstance().getValueFactory();
+  WolValueSptr retValue = nullptr;
+
+  WolComplexNodeSptr parent = dynamic_pointer_cast<WolComplexNode>(p);
+  assert(parent);
+
+  int parentArity = parent->getArity();
+  assert(parentArity == 2 || parentArity == 3 || parentArity == 1);
+  WolValueSptr tempResult = nullptr;
+  if (parentArity == 2) {
+    WolValueSptr operandValue = operand1;
+    bool implyLeft = false;
+    if(parent->getChild(0).get() == this ) {
+      implyLeft = true;
+    }
+    switch(_type) {
+      case WOL_AND_NODE:
+	tempResult = evalFactory->evalAndB(parentValue, operandValue);
+	break;
+      case WOL_BEQ_NODE:
+	tempResult = evalFactory->evalBeqB(parentValue, operandValue);
+	break;
+      case WOL_ULT_NODE:
+	tempResult = evalFactory->evalUltB(parentValue, operandValue, implyLeft);
+	break;
+      case WOL_CONCAT_NODE:
+	tempResult = evalFactory->evalConcatB(parentValue, operandValue, implyLeft);
+	break;
+      default:
+	assert(0);
+    }
+  }
+  else if (parentArity == 3) {
+    assert(_type == WOL_BCOND_NODE);
+    WolValueSptr operandValue1 = operand1;
+    WolValueSptr operandValue2 = operand2;
+    int position = -1;
+    if(parent->getChild(0).get() == this ) {
+      position = 0;
+    }
+    else if (parent->getChild(1).get() == this ) {
+      position = 1;
+    }
+    else {
+      position = 2;
+    }
+    tempResult = evalFactory->evalCondB(parentValue, operandValue1, operandValue2, position);
+  }
+  else {
+    //TODO check for not operator
+    assert(_type == WOL_SLICE_NODE);
+    tempResult = evalFactory->evalSpliceB(parentValue,
+                                          parent->getHighPrecision(),
+                                          parent->getLowPrecision(),
+                                          _precision);
+  }
+
+  retValue = tempResult;
+  return retValue;
+}
+
+WolValueSptr
+WolNode::performBackwardImplication() {
+
+  WolEvalFactory *evalFactory = WolMgr::getInstance().getEvalFactory();
+  WolValueFactory *valueFactory = WolMgr::getInstance().getValueFactory();
+  bool implPerformed = false;
+  WolValueSptr retValue = nullptr;
+  auto parents = getParents();
+  for(auto i : parents) {
+    WolComplexNodeSptr parent = dynamic_pointer_cast<WolComplexNode>(i.lock());
+    assert(parent);
+    if (!parent->getImplyFlag()) continue;
+
+
+    auto parentValue = parent->getValue();
+
+    int parentArity = parent->getArity();
+    assert(parentArity == 2 || parentArity == 3 || parentArity == 1);
+    WolValueSptr tempResult = nullptr;
+    if (parentArity == 2) {
+      WolValueSptr operandValue = nullptr;
+      bool implyLeft = false;
+      if(parent->getChild(0).get() == this ) {
+	operandValue = parent->getChild(1)->getValue();
+	implyLeft = true;
+      }
+      else {
+	operandValue = parent->getChild(0)->getValue();
+      }
+
+      switch(_type) {
+	case WOL_AND_NODE:
+	     tempResult = evalFactory->evalAndB(parentValue, operandValue);
+	     break;
+	case WOL_BEQ_NODE:
+	     tempResult = evalFactory->evalBeqB(parentValue, operandValue);
+	     break;
+	case WOL_ULT_NODE:
+	     tempResult = evalFactory->evalUltB(parentValue, operandValue, implyLeft);
+	     break;
+	case WOL_CONCAT_NODE:
+	     tempResult = evalFactory->evalConcatB(parentValue, operandValue, implyLeft);
+	     break;
+	default:
+	  assert(0);
+      }
+    }
+    else if (parentArity == 3) {
+      assert(_type == WOL_BCOND_NODE);
+      WolValueSptr operandValue1 = nullptr;
+      WolValueSptr operandValue2 = nullptr;
+      int position = -1;
+      if(parent->getChild(0).get() == this ) {
+    	operandValue1 = parent->getChild(1)->getValue();
+    	operandValue2 = parent->getChild(2)->getValue();
+    	position = 0;
+      }
+      else if (parent->getChild(1).get() == this ) {
+    	operandValue1 = parent->getChild(0)->getValue();
+    	operandValue2 = parent->getChild(2)->getValue();
+    	position = 1;
+      }
+      else {
+    	operandValue1 = parent->getChild(0)->getValue();
+    	operandValue2 = parent->getChild(1)->getValue();
+    	position = 2;
+      }
+      tempResult = evalFactory->evalCondB(parentValue, operandValue1, operandValue2, position);
+    }
+    else {
+      //TODO check for not operator
+      assert(_type == WOL_SLICE_NODE);
+      tempResult = evalFactory->evalSpliceB(parentValue,
+                                            parent->getHighPrecision(),
+                                            parent->getLowPrecision(),
+                                            _precision);
+    }
+
+    if (!implPerformed) retValue = tempResult;
+    else retValue = evalFactory->evalIntersection(retValue, tempResult);
+    implPerformed = true;
+
+  }
+
+  if(implPerformed) return retValue;
+  return valueFactory->makeComplexValue(_precision);
+
+}
+
+// result = -1; conflict
+// result = 0 ; nothing happened
+// result = 1 ; enable backward implication
+// result = 2 ; enable both forward and backward implication
+int
+WolNode::performImplication() {
+
+  WolValueSptr currValue = performBackwardImplication();
+  if(!currValue) return -1;
+
+  WolValueSptr prevValue = _value;
+  WolEvalFactory *evalFactory = WolMgr::getInstance().getEvalFactory();
+
+  WolValueSptr intersectionValue = evalFactory->evalIntersection(prevValue, currValue);
+  if (!intersectionValue) return -1;
+
+  WolValueSptr diff1 = evalFactory->evalDiff(prevValue, currValue);
+  WolValueSptr diff2 = evalFactory->evalDiff(currValue, prevValue);
+
+  if(!diff1 & !diff2) return 0;
+  if (!diff1) return 1;
+
+  if(!_svalue) _svalue = prevValue;
+  _value = intersectionValue;
+
+  return 2;
+}
+
 
 WolComplexNode::WolComplexNode(WolNodeType type,
                                int precision, 
@@ -173,10 +375,151 @@ bool WolComplexNode::wol_is_xnor_expr(){
    return false;
 }
 
+std::vector<WolNodeSptr>
+WolComplexNode::getNeighbors() {
+  std::vector<WolNodeSptr> neighbors;
+  for(auto i : _parents)
+    neighbors.push_back(i.lock());
+  neighbors.insert(neighbors.end(), _children.begin(), _children.end());
+  return neighbors;
+}
 
+WolValueSptr
+WolComplexNode::performForwardImplication() {
 
+  WolEvalFactory *evalFactory = WolMgr::getInstance().getEvalFactory();
+  WolValueSptr retValue = nullptr;
+  switch (_type) {
+    case WOL_SLICE_NODE:
+      retValue = evalFactory->evalSplice(getChild(0)->getValue(), _highPrec, _lowPrec);
+      break;
+    case WOL_AND_NODE:
+      retValue = evalFactory->evalAnd(getChild(0)->getValue(), getChild(1)->getValue());
+      break;
+    case WOL_BEQ_NODE:
+      retValue = evalFactory->evalBeq(getChild(0)->getValue(), getChild(1)->getValue());
+      break;
+    case WOL_ADD_NODE:
+      assert(0);
+      break;
+    case WOL_MUL_NODE:
+      assert(0);
+      break;
+    case WOL_ULT_NODE:
+      retValue = evalFactory->evalUlt(getChild(0)->getValue(), getChild(1)->getValue());
+      break;
+    case WOL_SLL_NODE:
+      assert(0);
+      break;
+    case WOL_SRL_NODE:
+      assert(0);
+      break;
+    case WOL_UDIV_NODE:
+      assert(0);
+      break;
+    case WOL_UREM_NODE:
+      assert(0);
+      break;
+    case WOL_CONCAT_NODE:
+      retValue = evalFactory->evalConcat(getChild(0)->getValue(), getChild(1)->getValue());
+      break;
+    case WOL_BCOND_NODE:
+      retValue = evalFactory->evalCond(getChild(0)->getValue(),
+                                       getChild(1)->getValue(),
+                                       getChild(2)->getValue());
+      break;
+    case WOL_BV_NOT_NODE:
+      retValue = getChild(0)->getValue()->getNotValue();
+      break;
+    default:
+      assert(0);
+  }
+  return retValue;
+}
 
+WolValueSptr
+WolComplexNode::performForwardImplication(WolValueSptr operand1,
+                                          WolValueSptr operand2 = nullptr,
+                                          WolValueSptr operand3 = nullptr) {
 
+  WolEvalFactory *evalFactory = WolMgr::getInstance().getEvalFactory();
+  WolValueSptr retValue = nullptr;
+  switch (_type) {
+    case WOL_SLICE_NODE:
+      retValue = evalFactory->evalSplice(operand1, _highPrec, _lowPrec);
+      break;
+    case WOL_AND_NODE:
+      retValue = evalFactory->evalAnd(operand1, operand2);
+      break;
+    case WOL_BEQ_NODE:
+      retValue = evalFactory->evalBeq(operand1, operand2);
+      break;
+    case WOL_ADD_NODE:
+      assert(0);
+      break;
+    case WOL_MUL_NODE:
+      assert(0);
+      break;
+    case WOL_ULT_NODE:
+      retValue = evalFactory->evalUlt(operand1, operand2);
+      break;
+    case WOL_SLL_NODE:
+      assert(0);
+      break;
+    case WOL_SRL_NODE:
+      assert(0);
+      break;
+    case WOL_UDIV_NODE:
+      assert(0);
+      break;
+    case WOL_UREM_NODE:
+      assert(0);
+      break;
+    case WOL_CONCAT_NODE:
+      retValue = evalFactory->evalConcat(operand1, operand2);
+      break;
+    case WOL_BCOND_NODE:
+      retValue = evalFactory->evalCond(operand1,
+                                       operand2,
+                                       operand3);
+      break;
+    case WOL_BV_NOT_NODE:
+      retValue = operand1->getNotValue();
+      break;
+    default:
+      assert(0);
+  }
+  return retValue;
+}
+
+int
+WolComplexNode::performImplication() {
+  WolValueSptr prevValue = _value;
+  WolEvalFactory *evalFactory = WolMgr::getInstance().getEvalFactory();
+
+  WolValueSptr currBackValue = performBackwardImplication();
+  if (!currBackValue) return -1;
+
+  WolValueSptr currForValue = performForwardImplication();
+  if(!currForValue) return -1;
+
+  WolValueSptr currValue = evalFactory->evalIntersection(currBackValue, currForValue);
+  if (!currValue) return -1;
+
+  WolValueSptr intersectionValue = evalFactory->evalIntersection(prevValue, currValue);
+  if (!intersectionValue) return -1;
+
+  WolValueSptr diff1 = evalFactory->evalDiff(prevValue, currValue);
+  WolValueSptr diff2 = evalFactory->evalDiff(currValue, prevValue);
+
+  if(!diff1 & !diff2) return 0;
+  if (!diff1) return 1;
+
+  if(!_svalue) _svalue = prevValue;
+  _value = intersectionValue;
+
+  return 2;
+}
 
 
 }

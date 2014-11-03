@@ -13,7 +13,8 @@
 namespace wolver {
 
 using namespace std;
-//--------------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------
 static const char* hex_char_to_bin(char c) {
 
     // TODO handle default / error
@@ -41,7 +42,7 @@ static const char* hex_char_to_bin(char c) {
 
 WolNodeSptr WolExpFactory::makeConstExpr(std::string name, int denom) {
 
-   // convert name in to binary strig   
+   // convert name in to binary string
    if (denom == 16) {
 
       std::string bin;
@@ -61,7 +62,8 @@ WolNodeSptr WolExpFactory::makeConstExpr(std::string name, int denom) {
       constExpr = WolNodeSptr(
           new WolNode(WolNode::WOL_BV_CONST_NODE, name.length()));
       constExpr->setName(name);
-      constExpr->setValue(WolMgr::getInstance().getValueFactory()->makeConstValue(name));
+      constExpr->setValue(WolMgr::getInstance().
+                          getValueFactory()->makeConstValue(name));
       WolMgr::getInstance().insertConstExpr(constExpr);
       WolMgr::getInstance().insertIdExpr(constExpr);
    }
@@ -131,7 +133,8 @@ static WolNodeSptr findExprInt(WolNodeSptr exp, std::string name) {
 
       for(int i = 0; i < arity; i++) {
                                                  
-        dynamic_pointer_cast<WolComplexNode>(retExp)->getChildren()[i]->addParent(
+        dynamic_pointer_cast<WolComplexNode>(retExp)->
+            getChildren()[i]->addParent(
             retExp);
       }
    }
@@ -153,8 +156,8 @@ static WolNodeSptr findSliceExprInt(WolNodeSptr exp, std::string name) {
 
       for(int i = 0; i < arity; i++) {
 
-        dynamic_pointer_cast<WolComplexNode>(retExp)->getChildren()[i]->addParent(
-            retExp);
+        dynamic_pointer_cast<WolComplexNode>(retExp)->getChildren()[i]->
+            addParent(retExp);
       }
    }
 
@@ -218,13 +221,15 @@ WolNodeSptr WolExpFactory::makeSliceExprInt(WolNodeSptr expr, int upper,
    return findSliceExprInt(sliceExpr, name);
 }
 
-WolNodeSptr WolExpFactory::makeSliceExpr(WolNodeSptr expr, int upper, 
+WolNodeSptr WolExpFactory::makeSliceExpr(WolNodeSptr expr,
+                                         int upper,
                                          int lower) {
    
    return rewriteSliceExpr(expr, upper, lower);
 }
 
-WolNodeSptr WolExpFactory::makeUextExpr(WolNodeSptr expr, int len) {
+WolNodeSptr WolExpFactory::makeUextExpr(WolNodeSptr expr,
+                                        int len) {
    
    WolNodeSptr result;
 
@@ -241,7 +246,8 @@ WolNodeSptr WolExpFactory::makeUextExpr(WolNodeSptr expr, int len) {
    return result;
 }
 
-WolNodeSptr WolExpFactory::makeSextExpr(WolNodeSptr expr, int len) {
+WolNodeSptr WolExpFactory::makeSextExpr(WolNodeSptr expr,
+                                        int len) {
    
    WolNodeSptr result;
    
@@ -262,7 +268,8 @@ WolNodeSptr WolExpFactory::makeSextExpr(WolNodeSptr expr, int len) {
    return result;
 }
 
-WolNodeSptr WolExpFactory::makeRepeatExpr(WolNodeSptr expr, int param) {
+WolNodeSptr WolExpFactory::makeRepeatExpr(WolNodeSptr expr,
+                                          int param) {
 
    WolNodeSptr oldExpr;
    WolNodeSptr result = expr;
@@ -276,7 +283,8 @@ WolNodeSptr WolExpFactory::makeRepeatExpr(WolNodeSptr expr, int param) {
    return result;
 }
 
-WolNodeSptr WolExpFactory::makeImpliesExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeImpliesExpr(WolNodeSptr expr1,
+                                           WolNodeSptr expr2) {
 
    WolNodeSptr notExpr2 = makeNotExpr(expr2);
    WolNodeSptr andExpr = makeAndExpr(expr1, notExpr2);
@@ -285,12 +293,14 @@ WolNodeSptr WolExpFactory::makeImpliesExpr(WolNodeSptr expr1, WolNodeSptr expr2)
    return result;
 }
 
-WolNodeSptr WolExpFactory::makeIffExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeIffExpr(WolNodeSptr expr1,
+                                       WolNodeSptr expr2) {
 
    return makeEqExpr(expr1, expr2);
 }
 
-WolNodeSptr WolExpFactory::makeXorExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeXorExpr(WolNodeSptr expr1,
+                                       WolNodeSptr expr2) {
 
    WolNodeSptr orExpr = makeOrExpr(expr1, expr2);
    WolNodeSptr andExpr = makeAndExpr(expr1, expr2);
@@ -300,14 +310,16 @@ WolNodeSptr WolExpFactory::makeXorExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
    return result;
 }
 
-WolNodeSptr WolExpFactory::makeXnorExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeXnorExpr(WolNodeSptr expr1,
+                                        WolNodeSptr expr2) {
 
    WolNodeSptr xorExpr = makeXorExpr(expr1, expr2);
    WolNodeSptr result = makeNotExpr(xorExpr);
    return result;
 }
 
-WolNodeSptr WolExpFactory::makeAndExprInt(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeAndExprInt(WolNodeSptr expr1,
+                                          WolNodeSptr expr2) {
 
    WolNodeSptr andExpr(
        new WolComplexNode(WolNode::WOL_AND_NODE, expr1->getPrecision(), 
@@ -316,12 +328,14 @@ WolNodeSptr WolExpFactory::makeAndExprInt(WolNodeSptr expr1, WolNodeSptr expr2) 
    return findExprInt(andExpr, "and");
 }
 
-WolNodeSptr WolExpFactory::makeAndExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeAndExpr(WolNodeSptr expr1,
+                                       WolNodeSptr expr2) {
 
    return rewriteAndExpr(expr1, expr2);
 }
 
-WolNodeSptr WolExpFactory::makeNandExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeNandExpr(WolNodeSptr expr1,
+                                        WolNodeSptr expr2) {
 
    WolNodeSptr andExpr = makeAndExpr(expr1, expr2);
    WolNodeSptr result = makeNotExpr(andExpr);
@@ -329,7 +343,8 @@ WolNodeSptr WolExpFactory::makeNandExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
    return result;
 }
 
-WolNodeSptr WolExpFactory::makeOrExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeOrExpr(WolNodeSptr expr1,
+                                      WolNodeSptr expr2) {
 
    WolNodeSptr negExpr1 = makeNotExpr(expr1);
    WolNodeSptr negExpr2 = makeNotExpr(expr2);
@@ -339,7 +354,8 @@ WolNodeSptr WolExpFactory::makeOrExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
    return result;
 }
 
-WolNodeSptr WolExpFactory::makeNorExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeNorExpr(WolNodeSptr expr1,
+                                       WolNodeSptr expr2) {
 
    WolNodeSptr orExpr = makeOrExpr(expr1, expr2);
    WolNodeSptr result = makeNotExpr(orExpr);
@@ -347,7 +363,8 @@ WolNodeSptr WolExpFactory::makeNorExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
    return result;
 }
 
-WolNodeSptr WolExpFactory::makeEqExprInt(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeEqExprInt(WolNodeSptr expr1,
+                                         WolNodeSptr expr2) {
 
    WolNodeSptr eqExpr(new WolComplexNode(WolNode::WOL_BEQ_NODE, 1, 
                                          expr1, expr2));
@@ -355,12 +372,14 @@ WolNodeSptr WolExpFactory::makeEqExprInt(WolNodeSptr expr1, WolNodeSptr expr2) {
    return findExprInt(eqExpr, "==");
 }
 
-WolNodeSptr WolExpFactory::makeEqExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeEqExpr(WolNodeSptr expr1,
+                                      WolNodeSptr expr2) {
 
    return rewriteEqExpr(expr1, expr2);
 }
 
-WolNodeSptr WolExpFactory::makeNeExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeNeExpr(WolNodeSptr expr1,
+                                      WolNodeSptr expr2) {
 
    WolNodeSptr eqExpr = makeEqExpr(expr1, expr2);
    WolNodeSptr result = makeNotExpr(eqExpr);
@@ -368,7 +387,8 @@ WolNodeSptr WolExpFactory::makeNeExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
    return result;
 }
 
-WolNodeSptr WolExpFactory::makeAddExprInt(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeAddExprInt(WolNodeSptr expr1,
+                                          WolNodeSptr expr2) {
 
    WolNodeSptr addExpr(
        new WolComplexNode(WolNode::WOL_ADD_NODE, expr1->getPrecision(), 
@@ -377,12 +397,14 @@ WolNodeSptr WolExpFactory::makeAddExprInt(WolNodeSptr expr1, WolNodeSptr expr2) 
    return findExprInt(addExpr, "+");
 }
 
-WolNodeSptr WolExpFactory::makeAddExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeAddExpr(WolNodeSptr expr1,
+                                       WolNodeSptr expr2) {
 
    return rewriteAddExpr(expr1, expr2);
 }
 
-WolNodeSptr WolExpFactory::makeUaddoExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeUaddoExpr(WolNodeSptr expr1,
+                                         WolNodeSptr expr2) {
 
    WolNodeSptr uextExpr1 = makeUextExpr(expr1, 1);
    WolNodeSptr uextExpr2 = makeUextExpr(expr2, 1);
@@ -393,7 +415,8 @@ WolNodeSptr WolExpFactory::makeUaddoExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
    return result;
 }
 
-WolNodeSptr WolExpFactory::makeSaddoExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeSaddoExpr(WolNodeSptr expr1,
+                                         WolNodeSptr expr2) {
 
    int len = expr1->getPrecision();
    WolNodeSptr sign_e1 = makeSliceExpr(expr1, len - 1, len - 1);
@@ -412,7 +435,8 @@ WolNodeSptr WolExpFactory::makeSaddoExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
    return result;
 }
 
-WolNodeSptr WolExpFactory::makeMulExprInt(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeMulExprInt(WolNodeSptr expr1,
+                                          WolNodeSptr expr2) {
 
    WolNodeSptr mulExpr(
        new WolComplexNode(WolNode::WOL_MUL_NODE, expr1->getPrecision(), 
@@ -421,13 +445,15 @@ WolNodeSptr WolExpFactory::makeMulExprInt(WolNodeSptr expr1, WolNodeSptr expr2) 
    return findExprInt(mulExpr, "*");
 }
 
-WolNodeSptr WolExpFactory::makeMulExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeMulExpr(WolNodeSptr expr1,
+                                       WolNodeSptr expr2) {
 
    return rewriteMulExpr(expr1, expr2);
 }
 
 
-WolNodeSptr WolExpFactory::makeUltExprInt(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeUltExprInt(WolNodeSptr expr1,
+                                          WolNodeSptr expr2) {
    
    WolNodeSptr ultExpr(new WolComplexNode(WolNode::WOL_ULT_NODE, 1,
                                           expr1, expr2));
@@ -435,13 +461,15 @@ WolNodeSptr WolExpFactory::makeUltExprInt(WolNodeSptr expr1, WolNodeSptr expr2) 
    return findExprInt(ultExpr, "<");
 }
 
-WolNodeSptr WolExpFactory::makeUltExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeUltExpr(WolNodeSptr expr1,
+                                       WolNodeSptr expr2) {
 
    return rewriteUltExpr(expr1, expr2);   
 }
 
 
-WolNodeSptr WolExpFactory::makeSltExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeSltExpr(WolNodeSptr expr1,
+                                       WolNodeSptr expr2) {
 
    int len = expr1->getPrecision();
    if (len == 1) {
@@ -463,7 +491,8 @@ WolNodeSptr WolExpFactory::makeSltExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
    return result;
 }
 
-WolNodeSptr WolExpFactory::makeUlteExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeUlteExpr(WolNodeSptr expr1,
+                                        WolNodeSptr expr2) {
 
    WolNodeSptr ultExpr = makeUltExpr(expr2, expr1);
    WolNodeSptr result = makeNotExpr(ultExpr);
@@ -471,7 +500,8 @@ WolNodeSptr WolExpFactory::makeUlteExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
    return result;
 }
 
-WolNodeSptr WolExpFactory::makeSlteExpr(WolNodeSptr expr1, WolNodeSptr expr2) { 
+WolNodeSptr WolExpFactory::makeSlteExpr(WolNodeSptr expr1,
+                                        WolNodeSptr expr2) {
 
    WolNodeSptr sltExpr = makeSltExpr(expr2, expr1);
    WolNodeSptr result = makeNotExpr(sltExpr);
@@ -479,17 +509,20 @@ WolNodeSptr WolExpFactory::makeSlteExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
    return result;
 }
 
-WolNodeSptr WolExpFactory::makeUgtExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeUgtExpr(WolNodeSptr expr1,
+                                       WolNodeSptr expr2) {
 
    return makeUltExpr(expr2, expr1);
 }
 
-WolNodeSptr WolExpFactory::makeSgtExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeSgtExpr(WolNodeSptr expr1,
+                                       WolNodeSptr expr2) {
    
    return makeSltExpr(expr2, expr1);
 }
 
-WolNodeSptr WolExpFactory::makeUgteExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeUgteExpr(WolNodeSptr expr1,
+                                        WolNodeSptr expr2) {
    
    WolNodeSptr ultExpr = makeUltExpr(expr1, expr2);
    WolNodeSptr result = makeNotExpr(ultExpr);
@@ -498,7 +531,8 @@ WolNodeSptr WolExpFactory::makeUgteExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
 
 }
 
-WolNodeSptr WolExpFactory::makeSgteExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeSgteExpr(WolNodeSptr expr1,
+                                        WolNodeSptr expr2) {
 
    WolNodeSptr sltExpr = makeSltExpr(expr1, expr2);
    WolNodeSptr result = makeNotExpr(sltExpr);
@@ -506,7 +540,8 @@ WolNodeSptr WolExpFactory::makeSgteExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
    return result;
 }
 
-WolNodeSptr WolExpFactory::makeSllExprInt(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeSllExprInt(WolNodeSptr expr1,
+                                          WolNodeSptr expr2) {
 
     WolNodeSptr sllExpr(
         new WolComplexNode(WolNode::WOL_SLL_NODE, expr1->getPrecision(),
@@ -515,11 +550,13 @@ WolNodeSptr WolExpFactory::makeSllExprInt(WolNodeSptr expr1, WolNodeSptr expr2) 
    return findExprInt(sllExpr, "sll");
 }
 
-WolNodeSptr WolExpFactory::makeSllExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeSllExpr(WolNodeSptr expr1,
+                                       WolNodeSptr expr2) {
    return rewriteSllExpr(expr1, expr2);   
 }
 
-WolNodeSptr WolExpFactory::makeSrlExprInt(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeSrlExprInt(WolNodeSptr expr1,
+                                          WolNodeSptr expr2) {
    
    WolNodeSptr srlExpr(
        new WolComplexNode(WolNode::WOL_SRL_NODE, expr1->getPrecision(),
@@ -528,13 +565,15 @@ WolNodeSptr WolExpFactory::makeSrlExprInt(WolNodeSptr expr1, WolNodeSptr expr2) 
    return findExprInt(srlExpr, "srl");
 }
 
-WolNodeSptr WolExpFactory::makeSrlExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeSrlExpr(WolNodeSptr expr1,
+                                       WolNodeSptr expr2) {
 
    return rewriteSrlExpr(expr1, expr2);   
 }
 
 
-WolNodeSptr WolExpFactory::makeSraExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeSraExpr(WolNodeSptr expr1,
+                                       WolNodeSptr expr2) {
 
    int len = expr1->getPrecision();
    WolNodeSptr sign_e1 = makeSliceExpr(expr1, len - 1, len - 1);
@@ -547,7 +586,8 @@ WolNodeSptr WolExpFactory::makeSraExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
    return result; 
 }
 
-WolNodeSptr WolExpFactory::makeRolExpr(WolNodeSptr expr1, int shift) {
+WolNodeSptr WolExpFactory::makeRolExpr(WolNodeSptr expr1,
+                                       int shift) {
 
    int len = expr1->getWidth();
    shift %= len;
@@ -598,7 +638,8 @@ WolNodeSptr WolExpFactory::makeRorExpr(WolNodeSptr expr1, int shift) {
    return result;
 }
 
-WolNodeSptr WolExpFactory::makeSubExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeSubExpr(WolNodeSptr expr1,
+                                       WolNodeSptr expr2) {
 
    WolNodeSptr negExpr = makeNegExpr(expr2);
    WolNodeSptr result = makeAddExpr(expr1, negExpr);
@@ -606,7 +647,8 @@ WolNodeSptr WolExpFactory::makeSubExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
    return result;
 }
 
-WolNodeSptr WolExpFactory::makeUdivExprInt(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeUdivExprInt(WolNodeSptr expr1,
+                                           WolNodeSptr expr2) {
 
    WolNodeSptr udivExpr(
        new WolComplexNode(WolNode::WOL_UDIV_NODE, expr1->getPrecision(),
@@ -615,12 +657,14 @@ WolNodeSptr WolExpFactory::makeUdivExprInt(WolNodeSptr expr1, WolNodeSptr expr2)
    return findExprInt(udivExpr, "udiv");
 }
 
-WolNodeSptr WolExpFactory::makeUdivExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeUdivExpr(WolNodeSptr expr1,
+                                        WolNodeSptr expr2) {
 
    return rewriteUdivExpr(expr1, expr2);
 }
 
-WolNodeSptr WolExpFactory::makeSdivExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeSdivExpr(WolNodeSptr expr1,
+                                        WolNodeSptr expr2) {
 
    int len = expr1->getPrecision();
 
@@ -641,7 +685,8 @@ WolNodeSptr WolExpFactory::makeSdivExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
    return result;
 }
 
-WolNodeSptr WolExpFactory::makeUremExprInt(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeUremExprInt(WolNodeSptr expr1,
+                                           WolNodeSptr expr2) {
 
    WolNodeSptr uremExpr(
       new WolComplexNode(WolNode::WOL_UREM_NODE, expr1->getPrecision(),
@@ -650,12 +695,14 @@ WolNodeSptr WolExpFactory::makeUremExprInt(WolNodeSptr expr1, WolNodeSptr expr2)
    return findExprInt(uremExpr, "urem");
 }
 
-WolNodeSptr WolExpFactory::makeUremExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeUremExpr(WolNodeSptr expr1,
+                                        WolNodeSptr expr2) {
 
    return rewriteUremExpr(expr1, expr2);
 }
 
-WolNodeSptr WolExpFactory::makeSremExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeSremExpr(WolNodeSptr expr1,
+                                        WolNodeSptr expr2) {
 
    int len = expr1->getPrecision();
    
@@ -675,7 +722,8 @@ WolNodeSptr WolExpFactory::makeSremExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
    return result;
 }
 
-WolNodeSptr WolExpFactory::makeSmodExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeSmodExpr(WolNodeSptr expr1,
+                                        WolNodeSptr expr2) {
    
    int len = expr1->getPrecision();
    WolNodeSptr zero = makeZeroExpr(len);
@@ -708,7 +756,8 @@ WolNodeSptr WolExpFactory::makeSmodExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
    return result;
 }
 
-WolNodeSptr WolExpFactory::makeConcatExprInt(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeConcatExprInt(WolNodeSptr expr1,
+                                             WolNodeSptr expr2) {
    
    WolNodeSptr concatExpr(new WolComplexNode(
                               WolNode::WOL_CONCAT_NODE, 
@@ -719,12 +768,14 @@ WolNodeSptr WolExpFactory::makeConcatExprInt(WolNodeSptr expr1, WolNodeSptr expr
    return findExprInt(concatExpr, "concat");
 }
 
-WolNodeSptr WolExpFactory::makeConcatExpr(WolNodeSptr expr1, WolNodeSptr expr2) {
+WolNodeSptr WolExpFactory::makeConcatExpr(WolNodeSptr expr1,
+                                          WolNodeSptr expr2) {
 
    return rewriteConcatExpr(expr1, expr2);
 }
 
-WolNodeSptr WolExpFactory::makeCondExprInt(WolNodeSptr expr1, WolNodeSptr expr2, 
+WolNodeSptr WolExpFactory::makeCondExprInt(WolNodeSptr expr1,
+                                           WolNodeSptr expr2,
                                            WolNodeSptr expr3) {
 
    WolNodeSptr condExpr(
@@ -734,7 +785,8 @@ WolNodeSptr WolExpFactory::makeCondExprInt(WolNodeSptr expr1, WolNodeSptr expr2,
    return findExprInt(condExpr, "cond");
 }
 
-WolNodeSptr WolExpFactory::makeCondExpr(WolNodeSptr expr1, WolNodeSptr expr2, 
+WolNodeSptr WolExpFactory::makeCondExpr(WolNodeSptr expr1,
+                                        WolNodeSptr expr2,
                                         WolNodeSptr expr3) {
 
    return rewriteCondExpr(expr1, expr2, expr3);
@@ -791,7 +843,8 @@ WolNodeSptr WolExpFactory::rewriteBinaryExpr(WolNode::WolNodeType kind,
 
          default:
             assert(kind == WolNode::WOL_CONCAT_NODE);
-            value = evalFactory->evalConcat(expr1->getValue(), expr2->getValue());
+            value = evalFactory->evalConcat(expr1->getValue(),
+                                            expr2->getValue());
             break;
       }
 
@@ -960,7 +1013,7 @@ WolNodeSptr WolExpFactory::rewriteBinaryExpr(WolNode::WolNodeType kind,
                          rewriteNotExpr(expr1->getChild(0)->getChild(0)),
                                         expr1);
                      WolNodeSptr right = rewriteEqExpr(
-                         rewriteNotExpr(expr1->getChild(0)->getChild(1)), expr1);
+                         rewriteNotExpr(expr1->getChild(0)->getChild(1)),expr1);
                      
                      result = rewriteAndExpr(left, right);
                   }
@@ -1079,7 +1132,8 @@ WolNodeSptr WolExpFactory::rewriteBinaryExpr(WolNode::WolNodeType kind,
          result = makeOnesExpr(expr1->getPrecision());
    }
    else if (expr1 == expr2 && (kind == WolNode::WOL_ULT_NODE 
-            || kind == WolNode::WOL_UREM_NODE || kind == WolNode::WOL_UDIV_NODE)) {
+            || kind == WolNode::WOL_UREM_NODE
+            || kind == WolNode::WOL_UDIV_NODE)) {
       
       int len = expr1->getPrecision();
       WolNodeSptr temp2, temp3, temp4, eq;  
@@ -1106,8 +1160,10 @@ WolNodeSptr WolExpFactory::rewriteBinaryExpr(WolNode::WolNodeType kind,
    }    
    else if (expr1->wol_is_bcond_node() && expr2->wol_is_bcond_node() && 
             (expr1->getChild(0) == expr2->getChild(0)) && 
-            ( kind == WolNode::WOL_ULT_NODE || kind == WolNode::WOL_BEQ_NODE || 
-              kind == WolNode::WOL_ADD_NODE  || kind == WolNode::WOL_UDIV_NODE)) {
+            ( kind == WolNode::WOL_ULT_NODE
+        	|| kind == WolNode::WOL_BEQ_NODE
+        	|| kind == WolNode::WOL_ADD_NODE
+        	|| kind == WolNode::WOL_UDIV_NODE)) {
 
       // ITE(c, a1, b1) op ITE (c, a2, b2) ----> ITE (c, a1 op b1, a2 op b2)
       switch (kind) {
@@ -1218,7 +1274,8 @@ WolNodeSptr WolExpFactory::rewriteSliceExpr(WolNodeSptr expr, int upper,
    else if (expr->wol_is_not_node()) {
       
       // (!a)[l:m] ---> !(a[l:m])
-      result = rewriteNotExpr(rewriteSliceExpr(expr->getChild(0), upper, lower));
+      result = rewriteNotExpr(rewriteSliceExpr(expr->getChild(0),
+                                               upper, lower));
    }
    else if (expr->wol_is_bv_const_node()) { 
       
@@ -1259,7 +1316,7 @@ WolNodeSptr WolExpFactory::rewriteSliceExpr(WolNodeSptr expr, int upper,
              (expr->getChild(0)->wol_is_not_node() && 
                expr->getChild(0)->getChild(0)->wol_is_slice_simplifiable_node()))
          &&  (expr->getChild(1)->wol_is_slice_simplifiable_node() ||
-             (expr->getChild(1)->wol_is_not_node() && 
+              (expr->getChild(1)->wol_is_not_node() &&
                expr->getChild(1)->getChild(0)->wol_is_slice_simplifiable_node()))) {             
       // (a && b)[l:m] ----> a[l:m] && b[l:m]
       WolNodeSptr left = rewriteSliceExpr(expr->getChild(0), upper, lower);
@@ -1270,7 +1327,8 @@ WolNodeSptr WolExpFactory::rewriteSliceExpr(WolNodeSptr expr, int upper,
    else if (expr->wol_is_bcond_node() &&
             (expr->getChild(1)->wol_is_slice_simplifiable_node() ||
              (expr->getChild(1)->wol_is_not_node() && 
-               expr->getChild(1)->getChild(0)->wol_is_slice_simplifiable_node()))           && (expr->getChild(2)->wol_is_slice_simplifiable_node() ||
+               expr->getChild(1)->getChild(0)->wol_is_slice_simplifiable_node()))
+               && (expr->getChild(2)->wol_is_slice_simplifiable_node() ||
              (expr->getChild(2)->wol_is_not_node() && 
                expr->getChild(2)->getChild(0)->wol_is_slice_simplifiable_node()))) {            
       // ITE(c, a, b)[l:m] ----> ITE(c, a[l:m], b[l:m])
@@ -2204,7 +2262,7 @@ WolNodeSptr WolExpFactory::rewriteNotExpr(WolNodeSptr expr) {
        return expr->getChild(0);    
     
    if (expr->wol_is_bv_const_node()){
-        return makeConstExpr(expr->getValue()->getNotOfExpr()->getStringRep(), 2);
+        return makeConstExpr(expr->getValue()->getNotValue()->getStringRep(), 2);
    }
 
    result = makeNotExprInt(expr);     

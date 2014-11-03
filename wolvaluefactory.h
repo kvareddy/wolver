@@ -16,11 +16,11 @@ class WolValueFactory {
 
 public:
    WolValueFactory() {}
-   ~WolValueFactory() {}
+   virtual ~WolValueFactory() {}
 
 public:
    virtual WolValueSptr makeConstValue(std::string name) = 0;
- //  virtual WolValueSptr makeNonConstExpr() = 0;
+   virtual WolValueSptr makeComplexValue(int precision) = 0;
    
 
 private:

@@ -256,8 +256,9 @@ public : // local classes
 
 public : //functions
 	int parse();
-   void print();
-
+        void print();
+        std::vector<WolNodeSptr> getInputs() {return _inputs;}
+        std::vector<WolNodeSptr> getOutputs() {return _outputs;}
 
 private : // functions
 	void wol_init_char_classes_smt();

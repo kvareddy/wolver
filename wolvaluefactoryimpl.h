@@ -20,11 +20,11 @@ class WolValueFactoryImpl: public WolValueFactory {
 
 public: 
    WolValueFactoryImpl () {}
-   ~WolValueFactoryImpl () {}
+   virtual ~WolValueFactoryImpl () {}
 
 public :
    WolValueSptr makeConstValue(std::string name);
-   
+   WolValueSptr makeComplexValue(int precision);
 
 private:
 

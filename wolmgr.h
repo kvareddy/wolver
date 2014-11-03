@@ -1,11 +1,11 @@
 #ifndef WOLMGR_H_INCLUDED
 #define WOLMGR_H_INCLUDED
 
-#include "wolexp.h"
 #include <unordered_map>
 #include <unordered_set>
 #include <algorithm>
 #include <memory>
+#include "wolexp.h"
 
 namespace wolver {
 
@@ -13,6 +13,7 @@ using namespace std;
 
 class WolValueFactory;
 class WolEvalFactory;
+
 
 class WolMgr {
 
