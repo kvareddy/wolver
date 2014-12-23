@@ -92,6 +92,7 @@ public: //Methods
    void setImplyFlag() {_implyFlag = true;}
    void unsetImplyFlag() {_implyFlag = false;}
    bool getImplyFlag() {return _implyFlag;}
+   WolValueSptr getRandomValue();
 
 
 public: // virtual methods
@@ -114,9 +115,9 @@ public: // virtual methods
    virtual int performImplication();
    virtual WolValueSptr performBackwardImplication();
    virtual WolValueSptr performBackwardImplication(WolNodeSptr parent,
-                                                   WolValueSptr parentValue = nullptr,
-                                                   WolValueSptr operand1 = nullptr,
-                                                   WolValueSptr operand2 = nullptr);
+                                                   WolValueSptr parentValue = {},
+                                                   WolValueSptr operand1 = {},
+                                                   WolValueSptr operand2 = {});
    virtual std::vector<WolNodeSptr> getNeighbors();
 
 private: //Methods
@@ -167,8 +168,8 @@ int getLowPrecision() const {return _lowPrec;}
 bool hasChildren() {return true;}
 WolValueSptr performForwardImplication();
 WolValueSptr performForwardImplication(WolValueSptr operand1,
-                                      WolValueSptr operand2 = nullptr,
-                                      WolValueSptr operand3 = nullptr);
+                                      WolValueSptr operand2 = {},
+                                      WolValueSptr operand3 = {});
 virtual int performImplication();
 void setChildren(WolNodeSptr child, int index);
 void setHighPrecision(int high_prec) {_highPrec = high_prec;}
@@ -178,6 +179,7 @@ bool wol_is_xor_expr();
 bool wol_is_xnor_expr();
 bool wol_is_const_zero_or_ones_expr() {return false;}
 std::vector<WolNodeSptr> getNeighbors();
+
 private: //methods
 
 private: //data
@@ -191,7 +193,6 @@ inline bool operator ==(const WolNodeSptr &lhs, const WolNodeSptr &rhs) {
   return lhs->getId() == rhs->getId(); }
 inline bool operator <(const WolNodeSptr &lhs, const WolNodeSptr &rhs) {
   return lhs->getId() < rhs->getId();}
-
 
 }
 

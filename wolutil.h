@@ -30,6 +30,8 @@ namespace wolver
   bitSetInc (dbitset val);
   dbitset
   bitSetDec (dbitset val);
+  dbitset
+  bitSetRand (dbitset lower, dbitset upper);
 
 }
 #endif /* WOLUTIL_H_ */

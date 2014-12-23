@@ -2,6 +2,7 @@
 #include "wolevalfactory.h"
 #include "wolvaluefactory.h"
 #include "wolvalue.h"
+#include "wolvaluefactory.h"
 #include <iostream>
 #include <assert.h>
 #include <string.h>
@@ -14,14 +15,13 @@ using namespace std;
 WolNode::WolNode(WolNodeType type, int precision) 
       : _type(type),
         _precision(precision),
-         _implyFlag(false),
-        _value(nullptr),
+        _implyFlag(false),
         _svalue(nullptr)
 {
    _arity = 0;
    _refCount = 1;
    _id = 0;
-   // need to implement the singleton pattern for accessing manager.   
+   _value = WolMgr::getInstance().getValueFactory()->makeComplexValue(precision);
 }
 
 void WolNode::addParent(WolNodeSptr node) {
@@ -80,8 +80,8 @@ WolNode::getNeighbors() {
 WolValueSptr
 WolNode::performBackwardImplication(WolNodeSptr p,
                                     WolValueSptr parentValue,
-                                    WolValueSptr operand1 = nullptr,
-                                    WolValueSptr operand2 = nullptr) {
+                                    WolValueSptr operand1,
+                                    WolValueSptr operand2) {
 
   WolEvalFactory *evalFactory = WolMgr::getInstance().getEvalFactory();
   WolValueFactory *valueFactory = WolMgr::getInstance().getValueFactory();
@@ -262,6 +262,11 @@ WolNode::performImplication() {
   return 2;
 }
 
+WolValueSptr
+WolNode::getRandomValue() {
+
+  return _value->getRandomValue();
+}
 
 WolComplexNode::WolComplexNode(WolNodeType type,
                                int precision, 
@@ -439,8 +444,8 @@ WolComplexNode::performForwardImplication() {
 
 WolValueSptr
 WolComplexNode::performForwardImplication(WolValueSptr operand1,
-                                          WolValueSptr operand2 = nullptr,
-                                          WolValueSptr operand3 = nullptr) {
+                                          WolValueSptr operand2,
+                                          WolValueSptr operand3) {
 
   WolEvalFactory *evalFactory = WolMgr::getInstance().getEvalFactory();
   WolValueSptr retValue = nullptr;

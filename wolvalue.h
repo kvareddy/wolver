@@ -39,9 +39,11 @@ public: // functions
    virtual void print() = 0;
    virtual std::string getStringRep() = 0;
    virtual bool isConst() = 0;
+   virtual bool isSingleTon() = 0;
    virtual WolConstType getConstType() = 0;
    virtual WolValueSptr getNotValue() = 0;
-   virtual WolValueType getType() = 0; 
+   virtual WolValueType getType() = 0;
+   virtual WolValueSptr getRandomValue() = 0;
    
 private: //data
 

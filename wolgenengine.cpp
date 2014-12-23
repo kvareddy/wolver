@@ -10,6 +10,8 @@
 #include "wolexp.h"
 #include "wolvalue.h"
 #include "wolgenengine.h"
+#include "wolevalfactory.h"
+#include "wolmgr.h"
 
 
 namespace wolver {
@@ -53,9 +55,11 @@ namespace wolver {
 	                         fNode->performBackwardImplication(parent, E_op, value),
 	                         R_c);
 	auto U1 = node->performBackwardImplication(
+				 parent,
 	                         evalFactory->evalDiff(R_op, E_op),
 	                         R_c);
 	auto U2 = node->performBackwardImplication(
+				 parent,
 	                         E_op,
 	                         evalFactory->evalDiff(R_c , E_c));
 	auto U_op = evalFactory->evalUnion(U1, U2);
@@ -121,9 +125,11 @@ namespace wolver {
 
 
 	auto U1 = node->performBackwardImplication(
+	    parent,
 	    evalFactory->evalDiff(R_op, E_op),
 	    R_c1, R_c2);
 	auto U2 = node->performBackwardImplication(
+	    parent,
 	    E_op,
 	    evalFactory->evalDiff(R_c1, E_c1),
 	    evalFactory->evalDiff(R_c2, E_c2));
@@ -138,6 +144,7 @@ namespace wolver {
 	    parent->performForwardImplication(value),
 	    R_op);
 	auto U_op = node->performBackwardImplication(
+	    parent,
 	    evalFactory->evalDiff(R_op, E_op));
 	U_total = evalFactory->evalUnion(U_total, U_op);
       }

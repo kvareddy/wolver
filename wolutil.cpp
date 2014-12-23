@@ -234,5 +234,46 @@ namespace wolver
       return q;
   }
 
+
+  /*
+   * picking a random bitvector between lower and upper
+   * algorithm:
+   * diff = upper - lower
+   * compute active_precision
+   * pick a random vector with suff_precision
+   * while (r_vector > diff) r_vector <- r_vector - diff;
+   * return r_vector
+   */
+  dbitset
+  bitSetRand (dbitset lower, dbitset upper) {
+
+   assert(lower < upper);
+   assert(lower.size () == upper.size ());
+   int length = lower.size();
+
+   dbitset diff = bitSetSub(upper, lower);
+   int numPrefixZeros = 0;
+   for (int i = length - 1; i >= 0; i--) {
+     if (diff[i]) break;
+     numPrefixZeros++;
+   }
+
+
+   int active_precision = length - numPrefixZeros;
+   dbitset r_vector(length);
+   std::default_random_engine generator;
+   std::uniform_int_distribution<int> dist(0, 1);
+   for (int i = 0; i < active_precision; i++) {
+      r_vector[i] = dist(generator);
+   }
+
+   while(r_vector > diff)
+     r_vector = bitSetSub(r_vector, diff);
+
+   dbitset retValue = bitSetAdd(lower, r_vector);
+
+    return retValue;
+  }
+
 }
 

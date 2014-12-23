@@ -32,8 +32,12 @@ WolImplMgr::performImplications(WolNodeSptr node) {
 
 std::pair<bool, nodeL>
 WolImplMgr::performImplications(nodeL &inputs, nodeL &outputs) {
-    return _impEngine->performImplication(inputs, outputs);
-
+  implResult res = _impEngine->performImplication(inputs, outputs);
+  if (res.first == false) {
+    // cleanup the stored values at the nodes
+    for( auto i : res.second) i->setSValue(nullptr);
+  }
+  return res;
 }
 
 WolValueSptr

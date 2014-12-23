@@ -1,5 +1,6 @@
 #include <iostream>
 #include <stdio.h>
+#include <vector>
 #include "wolmgr.h"
 #include "wolexp.h"
 #include "wolsmt2.h"
@@ -8,6 +9,7 @@
 #include "wolvaluefactory.h"
 #include "wolvaluefactoryimpl.h"
 #include "wolevalfactoryimpl.h"
+#include "wolvarselmgr.h"
 
 namespace wolver {
 
@@ -28,14 +30,19 @@ int wolver_main(int argc, char **argv)
    WolMgr::getInstance().setWolValueFactory(valueFactory);
    WolMgr::getInstance().setWolEvalFactory(evalFactory);
 
-	WolSmt2Parser *parser = new WolSmt2Parser(input_file);
+   WolSmt2Parser *parser = new WolSmt2Parser(input_file);
    if (parser->parse())	
       parser->print();
    else 
       std::cout << "error while reading the smt file" <<endl;
    
+   WolVarSelMgr::getInstance().setStrategy(WolVarSelMgr::Random,
+                                             parser->getInputs());
+   bool result = WolMgr::getInstance().solve(parser->getInputs(),
+                                             parser->getOutputs());
+
    delete parser;
-	return 0;
+   return result;
 }
 
 }

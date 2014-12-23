@@ -2,10 +2,12 @@
 #include "wolvalue.h"
 #include "wolutil.h"
 #include "wolmgr.h"
+#include "wolevalfactory.h"
 #include <boost/dynamic_bitset.hpp>
 #include <boost/ref.hpp>
 #include "common.h"
 #include "memory.h"
+#include <random>
 
 
 namespace wolver
@@ -241,6 +243,13 @@ namespace wolver
     return rangeSplit->getNotValueInt();
   }
 
+  WolValueSptr
+  WolRangeValueImpl::getRandomValue() {
+    dbitset rand = bitSetRand(_lowValue, _highValue);
+    auto retValue = std::make_shared<WolConstValueImpl> (rand);
+    return retValue;
+  }
+
   std::string
   WolUnionValueImpl::getStringRep () {
 
@@ -348,6 +357,19 @@ namespace wolver
     }
 
     return false;
+  }
+
+  WolValueSptr
+  WolUnionValueImpl::getRandomValue() {
+    int size = _values.size();
+
+    //TODO: Need to consider weighted distribution
+    std::default_random_engine generator;
+    std::uniform_int_distribution<int> dist(0, size -1);
+
+    int randIndex = dist(generator);
+
+    return _values[randIndex]->getRandomValue();
   }
 
   std::string
@@ -545,6 +567,21 @@ namespace wolver
     }
 
     return true;
+  }
+
+  WolValueSptr
+  WolConcatValueImpl::getRandomValue() {
+    int size = _values.size();
+    WolEvalFactory *evalFactory = WolMgr::getInstance().getEvalFactory();
+    WolValueSptr retValue = _values[0]->getRandomValue();
+
+    for (int i = 1; i < size; i++) {
+      WolValueSptr temp = _values[i]->getRandomValue();
+      retValue = evalFactory->evalConcat(retValue, temp);
+    }
+
+    return retValue;
+
   }
 
 

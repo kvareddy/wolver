@@ -41,6 +41,10 @@ typedef std::shared_ptr<WolConcatValueImpl> WolConcatValueImplSptr;
 typedef std::weak_ptr<WolConcatValueImpl> WolConcatValueImplWptr;
 typedef boost::dynamic_bitset<> dbitset;
 typedef std::set<WolNodeSptr> nodeL;
+typedef std::vector<WolNodeSptr> nodeVec;
+typedef std::pair<WolNodeSptr, WolValueSptr> nodeValue;
+typedef std::vector<nodeValue> nodeValueVec;
+typedef std::pair<bool, nodeL> implResult;
 
 #define makeBoolImpl(x) std::make_shared<WolBoolValueImpl>(x);
 #define makeConstImpl(x) std::make_shared<WolConstValueImpl>(x);

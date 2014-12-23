@@ -53,6 +53,7 @@ public: // functions
    virtual bool containsValue(dbitset value) = 0;
    // assumption data has already been split at lower and upper positions
    virtual WolValueImplSptr getSlices(int upper, int lower) {assert(0); return nullptr;}
+   virtual WolValueSptr getRandomValue() = 0;
 
 
 private: //data
@@ -64,7 +65,8 @@ protected:
 };
 
 
-class WolBoolValueImpl: public WolValueImpl {
+class WolBoolValueImpl: public WolValueImpl,
+			public std::enable_shared_from_this<WolBoolValueImpl>{
 
 friend class WolEvalFactoryImpl;
 
@@ -85,12 +87,13 @@ public:
   dbitset getLowValue() {return dbitset(1,_value);}
   dbitset getHighValue() {return dbitset(1, _value);}
   bool containsValue(dbitset const_val) {assert(0); return false;}
-private: 
+  WolValueSptr getRandomValue() {return shared_from_this();}
   bool _value;
 };
 
 
-class WolConstValueImpl : public WolValueImpl {
+class WolConstValueImpl : public WolValueImpl,
+			  public std::enable_shared_from_this<WolConstValueImpl> {
 
 friend class WolEvalFactoryImpl;
 
@@ -117,6 +120,7 @@ public: // functions
    WolValueImplSptr getNotValueInt();
    bool containsValue(dbitset const_val)
      {return const_val == _value;}
+   WolValueSptr getRandomValue() { return shared_from_this();}
 private: //data
    dbitset _value;
 };
@@ -155,6 +159,7 @@ public: // functions
    bool containsValue(dbitset const_val) {
      return (_lowValue <= const_val) && (_highValue >= const_val);
    }
+   WolValueSptr getRandomValue();
 private: //data
    int _prec;
    dbitset _lowValue;
@@ -191,6 +196,7 @@ public: // functions
    void optimize() {} // check if full range is present in the list
    WolValueImplSptr getNotValueInt();
    bool containsValue(dbitset const_val);
+   WolValueSptr getRandomValue();
 
 private: //data
    std::vector<WolValueImplSptr> _values;
@@ -225,7 +231,7 @@ public: // functions
    WolValueImplSptr getSlices(int upper, int lower);
    WolValueImplSptr getNotValueInt();
    bool containsValue(dbitset const_val);
-
+   WolValueSptr getRandomValue();
 private: //data
    std::vector<WolValueImplSptr> _values;
 };

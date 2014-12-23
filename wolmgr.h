@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <memory>
 #include "wolexp.h"
+#include "wolstack.h"
+#include "common.h"
 
 namespace wolver {
 
@@ -13,7 +15,7 @@ using namespace std;
 
 class WolValueFactory;
 class WolEvalFactory;
-
+class WolVarSelStrategy;
 
 class WolMgr {
 
@@ -25,7 +27,10 @@ public: //singleton
    }
 
 private:
-   WolMgr() {}
+   WolMgr()
+    : _globalId(1),
+     _valueFactory(NULL),
+     _evalFactory(NULL){}
    ~WolMgr() {}
    WolMgr(WolMgr const&);
    void operator= (WolMgr const&);
@@ -43,9 +48,10 @@ public:  // methods
    void setWolEvalFactory(WolEvalFactory *evalFactory) {_evalFactory = evalFactory;}
    WolValueFactory *getValueFactory() {return _valueFactory;}
    WolEvalFactory  *getEvalFactory() {return _evalFactory;}
+   bool solve(nodeVec inputs, nodeVec outputs);
 
 private: // methods
-
+   void initializeOutputNodes(nodeVec outputs);
 
 private: // data
 
@@ -125,7 +131,7 @@ std::unordered_map<int, WolNodeSptr> _idToExpMap;
 int _globalId;
 WolValueFactory *_valueFactory; 
 WolEvalFactory  *_evalFactory;
-
+WolStack _backtrackStack;
 
 
 };
