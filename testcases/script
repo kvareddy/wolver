@@ -1,0 +1,5 @@
+#!/bin/bash
+for f in *.smt2
+do
+    /home/user/work/wolver/wolver $f
+done
