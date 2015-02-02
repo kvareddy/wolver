@@ -44,6 +44,7 @@ public: // functions
    virtual WolValueSptr getNotValue() = 0;
    virtual WolValueType getType() = 0;
    virtual WolValueSptr getRandomValue() = 0;
+   virtual bool containsOne() = 0;
    
 private: //data
 

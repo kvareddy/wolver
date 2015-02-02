@@ -54,7 +54,10 @@ public: // functions
    // assumption data has already been split at lower and upper positions
    virtual WolValueImplSptr getSlices(int upper, int lower) {assert(0); return nullptr;}
    virtual WolValueSptr getRandomValue() = 0;
-
+   bool containsOne() {
+	   assert (_prec == 1);
+	   return containsValue(~dbitset(_prec, 0));
+   }
 
 private: //data
    WolValueImplType _type;
@@ -125,8 +128,8 @@ private: //data
    dbitset _value;
 };
 
-class WolRangeValueImpl: public WolValueImpl {
-
+class WolRangeValueImpl: public WolValueImpl,
+						 public std::enable_shared_from_this<WolRangeValueImpl> {
 friend class WolEvalFactoryImpl;
 
 public:
@@ -134,7 +137,7 @@ public:
        : WolValueImpl(WOL_VALUE_IMPL_RANGE_TYPE, precision)
        , _prec(precision)
        , _lowValue(dbitset(_prec, 0))
-       , _highValue(dbitset(_prec, (unsigned)-1)){}
+       , _highValue(~_lowValue){}
    WolRangeValueImpl(dbitset low, dbitset high)
        : WolValueImpl(WOL_VALUE_IMPL_RANGE_TYPE, low.size())
        , _prec(low.size())

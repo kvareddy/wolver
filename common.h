@@ -21,6 +21,7 @@ class WolConcatValueImpl;
 
 #define WOL_FIND_AND_NODE_CONTRADICTION_LIMT 20
 
+
 typedef std::shared_ptr<WolNode> WolNodeSptr;
 typedef std::shared_ptr<WolComplexNode> WolComplexNodeSptr;
 typedef std::weak_ptr<WolNode> WolNodeWptr;

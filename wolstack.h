@@ -23,9 +23,7 @@ namespace wolver {
       _node(node),
       _storedValue(value),
       _activeValue(value){}
-    ~WolStackEntry() {
-      assert(_implications.empty());
-    }
+    ~WolStackEntry() {}
 
   public:
     WolValueSptr getSotredValue() {return _storedValue;}

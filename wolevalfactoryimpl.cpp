@@ -120,7 +120,11 @@ namespace wolver
 
   WolValueSptr
   WolEvalFactoryImpl::evalDiff (WolValueSptr val1, WolValueSptr val2) {
-    return evalIntersection(val1, evalCompliment(val2));
+	  WolValueSptr compliment = evalCompliment(val2);
+	  if (compliment)
+		  return evalIntersection(val1, compliment);
+	  else
+		  return nullptr;
   }
 
   WolValueSptr
@@ -1785,11 +1789,18 @@ namespace wolver
   WolEvalFactoryImpl::evalRangeAndRange (WolValueImplSptr val1,
 					 WolValueImplSptr val2) {
 
-    assert(val1->getPrecision() > 1);
-    assert(val2->getPrecision() > 1);
+    assert(val1->getPrecision() >= 1);
+    assert(val2->getPrecision() >= 1);
+
 
     WolRangeValueImplSptr range1 = dRangeCast(val1);
     WolRangeValueImplSptr range2 = dRangeCast(val2);
+
+    assert(range1->getPrecision() != 1 || range1->isFull());
+    assert(range2->getPrecision() != 2 || range2->isFull());
+
+    if (range1->isFull() && range2->isFull())
+    	return val1;
 
     int position = min(range1->OptimalSplitPosition(),
                        range2->OptimalSplitPosition());
@@ -3217,61 +3228,61 @@ namespace wolver
   WolEvalFactoryImpl::evalConstCompliment (WolValueImplSptr val) {
 
 
-    WolConstValueImplSptr const_val = dConstCast(val);
-    int prec = const_val->getPrecision();
+	  WolConstValueImplSptr const_val = dConstCast(val);
+	  int prec = const_val->getPrecision();
 
-    if (const_val->getConstType() == WolValueImpl::WOL_SPECIAL_CONST_ZERO) {
+	  if (const_val->getConstType() == WolValueImpl::WOL_SPECIAL_CONST_ZERO) {
 
-      if (prec == 1) {
-	WolConstValueImplSptr retValue = makeConstImpl(dbitset(1,1));
-	return retValue;
-      }
-      else {
-	dbitset incValue = bitSetInc(const_val->_value);
-	WolRangeValueImplSptr retValue = makeRangeImpl2(incValue, dbitset(prec, (unsigned)-1));
-	return retValue;
-      }
-    }
-    else if (const_val->getConstType() == WolValueImpl::WOL_SPECIAL_CONST_ONES) {
+		  if (prec == 1) {
+			  WolConstValueImplSptr retValue = makeConstImpl(dbitset(1,1));
+			  return retValue;
+		  }
+		  else {
+			  dbitset incValue = bitSetInc(const_val->_value);
+			  WolRangeValueImplSptr retValue = makeRangeImpl2(incValue, ~dbitset(prec, 0));
+			  return retValue;
+		  }
+	  }
+	  else if (const_val->getConstType() == WolValueImpl::WOL_SPECIAL_CONST_ONES ||
+			  const_val->getConstType() == WolValueImpl::WOL_SPECIAL_CONST_ONE_ONES) {
+		  if (prec == 1) {
+			  WolConstValueImplSptr retValue = makeConstImpl(dbitset(1,0));
+			  return retValue;
+		  }
+		  else {
+			  dbitset decValue = bitSetDec(const_val->_value);
+			  WolRangeValueImplSptr retValue = makeRangeImpl2(dbitset(prec, 0), decValue);
+			  return retValue;
+		  }
+	  }
+	  else {
+		  dbitset decValue = bitSetDec(const_val->_value);
+		  dbitset incValue = bitSetInc(const_val->_value);
 
-      if (prec == 1) {
-	WolConstValueImplSptr retValue = makeConstImpl(dbitset(1,0));
-	return retValue;
-      }
-      else {
-	dbitset decValue = bitSetDec(const_val->_value);
-	WolRangeValueImplSptr retValue = makeRangeImpl2(dbitset(prec, 0), decValue);
-	return retValue;
-      }
-    }
-    else {
-      dbitset decValue = bitSetDec(const_val->_value);
-      dbitset incValue = bitSetInc(const_val->_value);
+		  WolUnionValueImplSptr retValue = makeUnionImpl();
+		  if (dbitset(prec, 0) != decValue) {
+			  WolRangeValueImplSptr one = makeRangeImpl2(dbitset(prec, 0), decValue);
+			  retValue->addValue(one);
+		  }
+		  else {
+			  WolConstValueImplSptr one = makeConstImpl(decValue);
+			  retValue->addValue(one);
+		  }
 
-      WolUnionValueImplSptr retValue = makeUnionImpl();
-      if (dbitset(prec, 0) != decValue) {
-         WolRangeValueImplSptr one = makeRangeImpl2(dbitset(prec, 0), decValue);
-         retValue->addValue(one);
-      }
-      else {
-	WolConstValueImplSptr one = makeConstImpl(decValue);
-	retValue->addValue(one);
-      }
+		  if (dbitset(prec, unsigned(-1)) != incValue) {
+			  WolRangeValueImplSptr two = makeRangeImpl2(incValue, dbitset(prec, (unsigned)-1));
+			  retValue->addValue(two);
+		  }
+		  else {
+			  WolConstValueImplSptr two = makeConstImpl(incValue);
+			  retValue->addValue(two);
+		  }
 
-      if (dbitset(prec, unsigned(-1)) != incValue) {
-	WolRangeValueImplSptr two = makeRangeImpl2(incValue, dbitset(prec, (unsigned)-1));
-	retValue->addValue(two);
-      }
-      else {
-	WolConstValueImplSptr two = makeConstImpl(incValue);
-	retValue->addValue(two);
-      }
+		  return retValue;
 
-      return retValue;
-
-    }
-    assert(0);
-    return nullptr;
+	  }
+	  assert(0);
+	  return nullptr;
   }
 
   WolValueImplSptr
@@ -3411,105 +3422,114 @@ namespace wolver
    */
   WolValueImplSptr
   WolEvalFactoryImpl::evalBackConstAndConst(WolValueImplSptr op_val,
-                                         WolValueImplSptr operand_val){
+		  WolValueImplSptr operand_val){
 
-    WolConstValueImplSptr op_const_val = dConstCast(op_val);
-    WolConstValueImplSptr operand_const_val = dConstCast(operand_val);
+	  WolConstValueImplSptr op_const_val = dConstCast(op_val);
+	  WolConstValueImplSptr operand_const_val = dConstCast(operand_val);
 
-    if (((op_const_val->_value) & (~operand_const_val->_value)) != dbitset(op_val->getPrecision(), 0))
-      return nullptr;
+	  if (((op_const_val->_value) & (~operand_const_val->_value)) != dbitset(op_val->getPrecision(), 0))
+		  return nullptr;
 
-    if (((~op_const_val->_value) & (~operand_const_val->_value)) == dbitset(op_val->getPrecision(), 0))
-      return op_val;
+	  if (((~op_const_val->_value) & (~operand_const_val->_value)) == dbitset(op_val->getPrecision(), 0))
+		  return op_val;
 
-    WolConcatValueImplSptr retValue = makeConcatImpl();
-    dbitset temp;
-    int numXcount = 0;
-    for (unsigned i = 0; i < op_const_val->_value.size(); i++) {
-      if (op_const_val->_value[i] == 0 && operand_const_val->_value[i] == 0) {
-	numXcount++;
-	if (numXcount == 1 && i > 1) {
-	  WolConstValueImplSptr c = makeConstImpl(temp);
-	  retValue->addValue(c);
-	  temp.clear();
-	}
-      }
-      else {
-	temp.resize(temp.size() + 1, op_const_val->_value[i]);
-	if (numXcount > 0) {
-	  WolRangeValueImplSptr r = makeRangeImpl(numXcount);
-	  retValue->addValue(r);
-	  numXcount = 0;
-	}
-      }
-    }
-    if (numXcount == 0) {
-      WolConstValueImplSptr c = makeConstImpl(temp);
-      retValue->addValue(c);
-    }
-    else {
-      WolRangeValueImplSptr r = makeRangeImpl(numXcount);
-      retValue->addValue(r);
-    }
+	  WolConcatValueImplSptr retValue = makeConcatImpl();
+	  dbitset temp;
+	  int numXcount = 0;
+	  for (unsigned i = 0; i < op_const_val->_value.size(); i++) {
+		  if (op_const_val->_value[i] == 0 && operand_const_val->_value[i] == 0) {
+			  numXcount++;
+			  if (numXcount == 1 && i > 1) {
+				  WolConstValueImplSptr c = makeConstImpl(temp);
+				  retValue->addValue(c);
+				  temp.clear();
+			  }
+		  }
+		  else {
+			  temp.resize(temp.size() + 1, op_const_val->_value[i]);
+			  if (numXcount > 0) {
+				  WolRangeValueImplSptr r = makeRangeImpl(numXcount);
+				  retValue->addValue(r);
+				  numXcount = 0;
+			  }
+		  }
+	  }
+	  if (numXcount == 0) {
+		  WolConstValueImplSptr c = makeConstImpl(temp);
+		  retValue->addValue(c);
+	  }
+	  else {
+		  WolRangeValueImplSptr r = makeRangeImpl(numXcount);
+		  retValue->addValue(r);
+	  }
 
-    assert(retValue->getPrecision() == op_val->getPrecision());
-    return retValue;
+	  assert(retValue->getPrecision() == op_val->getPrecision());
+	  if (retValue->numValues() == 1)
+		  return retValue->getValue(0);
+
+	  return retValue;
   }
 
   WolValueImplSptr
   WolEvalFactoryImpl::evalBackConstAndRange(WolValueImplSptr op_val,
-                                         WolValueImplSptr operand_val){
+		  WolValueImplSptr operand_val){
 
-    WolConstValueImplSptr const_val = dConstCast(op_val);
-    WolRangeValueImplSptr range_val = dRangeCast(operand_val);
+	  WolConstValueImplSptr const_val = dConstCast(op_val);
+	  WolRangeValueImplSptr range_val = dRangeCast(operand_val);
 
-    int size = const_val->_value.size();
-    if (!range_val->isFull()){
-      int position = range_val->OptimalSplitPosition();
-      if (position == 0) position = size/2;
-      auto rangeSplit = range_val->split(position);
-      auto constSplit = const_val->split(position);
+	  int size = const_val->_value.size();
+	  if (!range_val->isFull()){
+		  int position = range_val->OptimalSplitPosition();
+		  if (position == 0) position = size/2;
+		  auto rangeSplit = range_val->split(position);
+		  auto constSplit = const_val->split(position);
 
-      return evalAndBInt(constSplit, rangeSplit);
-    }
-    else {
-      // 110011 ---> 11XX11
-      dbitset val = const_val->_value;
-      if (val.none()) {
-	auto result = makeConstImpl(val);
-	return result ;
-      }
-      else {
-	WolConcatValueImplSptr concatVal = makeConcatImpl();
-	int i = 0, j = 0;
-	int element = val[0];
-	for (int k = 1; k < size; k++) {
-	  if ((val[k] == element)) {
-	    j++;
-	    if (k < (size - 1)) continue;
+		  return evalAndBInt(constSplit, rangeSplit);
+	  }
+	  else {
+		  // 110011 ---> 11XX11
+		  dbitset val = const_val->_value;
+		  if (val.none()) {
+			  auto result = makeRangeImpl(size);
+			  return result ;
+		  }
+		  else if ((~val).none()) {
+			  return const_val;
+		  }
+		  else {
+			  WolConcatValueImplSptr concatVal = makeConcatImpl();
+			  int i = 0, j = 0;
+			  int element = val[0];
+			  for (int k = 1; k < size; k++) {
+				  if ((val[k] == element)) {
+					  j++;
+					  if (k < (size - 1)) continue;
+				  }
+
+				  //[i,j]
+				  if (element == 1) {
+					  WolConstValueImplSptr constVal = makeConstImpl(dbitset(j - i + 1, 0));
+					  concatVal->addValue(constVal);
+				  }
+				  else {
+					  WolRangeValueImplSptr rangeVal = makeRangeImpl(j- i + 1);
+					  concatVal->addValue(rangeVal);
+				  }
+
+				  i = k;
+				  j = k;
+				  element = val[k];
+
+			  }
+			  if (concatVal->numValues() == 1)
+				  return concatVal->getValue(0);
+			  else
+				  return concatVal;
+		  }
 	  }
 
-	  //[i,j]
-	     if (element == 1) {
-	       WolConstValueImplSptr constVal = makeConstImpl(dbitset(j - i + 1, 0));
-	       concatVal->addValue(constVal);
-	     }
-	     else {
-	       WolRangeValueImplSptr rangeVal = makeRangeImpl(j- i + 1);
-	       concatVal->addValue(rangeVal);
-	     }
-
-	     i = k;
-	     j = k;
-	     element = val[k];
-
-	}
-	return concatVal;
-      }
-    }
-
-    assert(0);
-    return nullptr;
+	  assert(0);
+	  return nullptr;
   }
 
   WolValueImplSptr

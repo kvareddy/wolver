@@ -115,6 +115,7 @@ WolNodeSptr WolExpFactory::makeVarExpr(int len, std::string symbol) {
 
    WolNodeSptr varExpr(new WolNode(WolNode::WOL_BV_VAR_NODE, len));
    varExpr->setName(symbol);
+   WolMgr::getInstance().insertIdExpr(varExpr);
 
    return varExpr;
 }
@@ -1346,8 +1347,8 @@ WolNodeSptr WolExpFactory::rewriteSliceExpr(WolNodeSptr expr, int upper,
 
 static bool check_inversion(WolNodeSptr expr1, WolNodeSptr expr2) {
 
-   bool result = (expr1->wol_is_not_node() && expr1->getChild(0) == expr2) || 
-                 (expr2->wol_is_not_node() && expr2->getChild(0) == expr1);
+   bool result = (expr1->wol_is_not_node() && (expr1->getChild(0) == expr2)) ||
+                 (expr2->wol_is_not_node() && (expr2->getChild(0) == expr1));
 
    return result;   
 }

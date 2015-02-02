@@ -246,11 +246,11 @@ public : // local classes
 
    class commandsData {
    public:
-      int all;
-      int set_logic;
-      int asserts;
-      int check_sat;
-      int exits;
+      int all = { 0 };
+      int set_logic = { 0 };
+      int asserts = { 0 };
+      int check_sat = { 0 };
+      int exits = { 0 };
    };
 
 

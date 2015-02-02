@@ -32,8 +32,8 @@ public: //methods
    bool isEmpty() {return _workList.empty();}
    bool performImplication(nodeL &changes, WolWorkList &wl);
    WolWorkList getNeighbors();
-   Iterator begin() { return _workList.begin();}
-   Iterator end() {return _workList.end();}
+//   Iterator begin() { return _workList.begin();}
+//   Iterator end() {return _workList.end();}
 
 private: // methods
 

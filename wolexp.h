@@ -120,7 +120,7 @@ public: // virtual methods
                                                    WolValueSptr operand2 = {});
    virtual std::vector<WolNodeSptr> getNeighbors();
 
-private: //Methods
+protected: //Methods
   void deleteInvalidParents();
 
 

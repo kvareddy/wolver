@@ -17,7 +17,7 @@ namespace wolver
   WolValueFactoryImpl::makeComplexValue(int precision) {
 
     WolRangeValueImplSptr retValue (new WolRangeValueImpl(precision));
-    return nullptr;
+    return retValue;
   }
 
 }

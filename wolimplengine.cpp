@@ -63,8 +63,8 @@ namespace wolver {
       prev.unsetImplyFlag();
 
       if (!output) {
-	revertChanges(changes);
-	return std::make_pair(false, changes);
+    	  revertChanges(changes);
+    	  return std::make_pair(false, changes);
       }
       if (next.isEmpty()) break;
 

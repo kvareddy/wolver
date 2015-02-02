@@ -200,7 +200,7 @@ namespace wolver
   bool
   WolRangeValueImpl::isFull() {
 
-    bool result = _lowValue.none() && _highValue.flip().none();
+    bool result = _lowValue.none() && (~_highValue).none();
 
     return result;
   }
@@ -208,19 +208,19 @@ namespace wolver
   int
   WolRangeValueImpl::OptimalSplitPosition() {
 
-    assert(!this->isFull());
+	  assert(!this->isFull());
 
-    //_lowValue, _highValue
-    int position = 0;
-    int size = _lowValue.size();
-    for (int i = 0; i < size; i++) {
-      if (_lowValue[i] == _highValue[i])
-	position++;
-      else
-	break;
-    }
+	  //_lowValue, _highValue
+	  int position = 0;
+	  int size = _lowValue.size();
+	  for (int i = 0; i < size; i++) {
+		  if (_lowValue[i] == _highValue[i])
+			  position++;
+		  else
+			  break;
+	  }
 
-    return position;
+	  return position;
   }
 
   bool
@@ -233,7 +233,7 @@ namespace wolver
   WolValueImplSptr
   WolRangeValueImpl::getNotValueInt() {
 
-    if (isFull()) return nullptr;
+    if (isFull()) return shared_from_this();
     assert(checkConsistency());
 
     int position = OptimalSplitPosition();
