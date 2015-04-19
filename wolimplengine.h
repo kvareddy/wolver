@@ -10,10 +10,10 @@
 
 #include <utility>
 #include "common.h"
-#include "wolworklist.h"
 
 namespace wolver {
 
+class WolWorkList;
 
 class WolImplEngine {
 

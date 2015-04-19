@@ -60,7 +60,7 @@ WolNodeSptr WolExpFactory::makeConstExpr(std::string name, int denom) {
 
       // build the constexpr
       constExpr = WolNodeSptr(
-          new WolNode(WolNode::WOL_BV_CONST_NODE, name.length()));
+          new WolNode(WolNodeType::WOL_BV_CONST_NODE, name.length()));
       constExpr->setName(name);
       constExpr->setValue(WolMgr::getInstance().
                           getValueFactory()->makeConstValue(name));
@@ -113,7 +113,7 @@ WolNodeSptr WolExpFactory::makeTrueExpr() {
 
 WolNodeSptr WolExpFactory::makeVarExpr(int len, std::string symbol) {
 
-   WolNodeSptr varExpr(new WolNode(WolNode::WOL_BV_VAR_NODE, len));
+   WolNodeSptr varExpr(new WolNode(WolNodeType::WOL_BV_VAR_NODE, len));
    varExpr->setName(symbol);
    WolMgr::getInstance().insertIdExpr(varExpr);
 
@@ -167,7 +167,7 @@ static WolNodeSptr findSliceExprInt(WolNodeSptr exp, std::string name) {
 
 WolNodeSptr WolExpFactory::makeNotExprInt(WolNodeSptr expr) {
    
-   WolNodeSptr notExpr(new WolComplexNode(WolNode::WOL_BV_NOT_NODE, 
+   WolNodeSptr notExpr(new WolComplexNode(WolNodeType::WOL_BV_NOT_NODE,
                                           expr->getPrecision(), expr));
 
    return findExprInt(notExpr, "not");
@@ -213,7 +213,7 @@ WolNodeSptr WolExpFactory::makeSliceExprInt(WolNodeSptr expr, int upper,
    assert(expr);
 
    WolNodeSptr sliceExpr(
-       new WolComplexNode(WolNode::WOL_SLICE_NODE, upper-lower+1, upper, 
+       new WolComplexNode(WolNodeType::WOL_SLICE_NODE, upper-lower+1, upper,
            lower, expr));
    ostringstream os;
    os << "[" << upper << "," << lower << "]";
@@ -323,7 +323,7 @@ WolNodeSptr WolExpFactory::makeAndExprInt(WolNodeSptr expr1,
                                           WolNodeSptr expr2) {
 
    WolNodeSptr andExpr(
-       new WolComplexNode(WolNode::WOL_AND_NODE, expr1->getPrecision(), 
+       new WolComplexNode(WolNodeType::WOL_AND_NODE, expr1->getPrecision(),
                           expr1, expr2));
 
    return findExprInt(andExpr, "and");
@@ -367,7 +367,7 @@ WolNodeSptr WolExpFactory::makeNorExpr(WolNodeSptr expr1,
 WolNodeSptr WolExpFactory::makeEqExprInt(WolNodeSptr expr1,
                                          WolNodeSptr expr2) {
 
-   WolNodeSptr eqExpr(new WolComplexNode(WolNode::WOL_BEQ_NODE, 1, 
+   WolNodeSptr eqExpr(new WolComplexNode(WolNodeType::WOL_BEQ_NODE, 1,
                                          expr1, expr2));
 
    return findExprInt(eqExpr, "==");
@@ -392,7 +392,7 @@ WolNodeSptr WolExpFactory::makeAddExprInt(WolNodeSptr expr1,
                                           WolNodeSptr expr2) {
 
    WolNodeSptr addExpr(
-       new WolComplexNode(WolNode::WOL_ADD_NODE, expr1->getPrecision(), 
+       new WolComplexNode(WolNodeType::WOL_ADD_NODE, expr1->getPrecision(),
                           expr1, expr2));
 
    return findExprInt(addExpr, "+");
@@ -440,7 +440,7 @@ WolNodeSptr WolExpFactory::makeMulExprInt(WolNodeSptr expr1,
                                           WolNodeSptr expr2) {
 
    WolNodeSptr mulExpr(
-       new WolComplexNode(WolNode::WOL_MUL_NODE, expr1->getPrecision(), 
+       new WolComplexNode(WolNodeType::WOL_MUL_NODE, expr1->getPrecision(),
                           expr1, expr2));
 
    return findExprInt(mulExpr, "*");
@@ -456,7 +456,7 @@ WolNodeSptr WolExpFactory::makeMulExpr(WolNodeSptr expr1,
 WolNodeSptr WolExpFactory::makeUltExprInt(WolNodeSptr expr1,
                                           WolNodeSptr expr2) {
    
-   WolNodeSptr ultExpr(new WolComplexNode(WolNode::WOL_ULT_NODE, 1,
+   WolNodeSptr ultExpr(new WolComplexNode(WolNodeType::WOL_ULT_NODE, 1,
                                           expr1, expr2));
 
    return findExprInt(ultExpr, "<");
@@ -545,7 +545,7 @@ WolNodeSptr WolExpFactory::makeSllExprInt(WolNodeSptr expr1,
                                           WolNodeSptr expr2) {
 
     WolNodeSptr sllExpr(
-        new WolComplexNode(WolNode::WOL_SLL_NODE, expr1->getPrecision(),
+        new WolComplexNode(WolNodeType::WOL_SLL_NODE, expr1->getPrecision(),
                            expr1, expr2));
 
    return findExprInt(sllExpr, "sll");
@@ -560,7 +560,7 @@ WolNodeSptr WolExpFactory::makeSrlExprInt(WolNodeSptr expr1,
                                           WolNodeSptr expr2) {
    
    WolNodeSptr srlExpr(
-       new WolComplexNode(WolNode::WOL_SRL_NODE, expr1->getPrecision(),
+       new WolComplexNode(WolNodeType::WOL_SRL_NODE, expr1->getPrecision(),
                           expr1, expr2));
 
    return findExprInt(srlExpr, "srl");
@@ -652,7 +652,7 @@ WolNodeSptr WolExpFactory::makeUdivExprInt(WolNodeSptr expr1,
                                            WolNodeSptr expr2) {
 
    WolNodeSptr udivExpr(
-       new WolComplexNode(WolNode::WOL_UDIV_NODE, expr1->getPrecision(),
+       new WolComplexNode(WolNodeType::WOL_UDIV_NODE, expr1->getPrecision(),
                           expr1, expr2));
 
    return findExprInt(udivExpr, "udiv");
@@ -690,7 +690,7 @@ WolNodeSptr WolExpFactory::makeUremExprInt(WolNodeSptr expr1,
                                            WolNodeSptr expr2) {
 
    WolNodeSptr uremExpr(
-      new WolComplexNode(WolNode::WOL_UREM_NODE, expr1->getPrecision(),
+      new WolComplexNode(WolNodeType::WOL_UREM_NODE, expr1->getPrecision(),
                          expr1, expr2));
 
    return findExprInt(uremExpr, "urem");
@@ -761,7 +761,7 @@ WolNodeSptr WolExpFactory::makeConcatExprInt(WolNodeSptr expr1,
                                              WolNodeSptr expr2) {
    
    WolNodeSptr concatExpr(new WolComplexNode(
-                              WolNode::WOL_CONCAT_NODE, 
+                              WolNodeType::WOL_CONCAT_NODE,
                               expr1->getPrecision() + expr2->getPrecision(),
                               expr1, 
                               expr2));
@@ -780,7 +780,7 @@ WolNodeSptr WolExpFactory::makeCondExprInt(WolNodeSptr expr1,
                                            WolNodeSptr expr3) {
 
    WolNodeSptr condExpr(
-       new WolComplexNode(WolNode::WOL_BCOND_NODE, expr2->getPrecision(),
+       new WolComplexNode(WolNodeType::WOL_BCOND_NODE, expr2->getPrecision(),
                           expr1, expr2, expr3));
 
    return findExprInt(condExpr, "cond");
@@ -793,7 +793,7 @@ WolNodeSptr WolExpFactory::makeCondExpr(WolNodeSptr expr1,
    return rewriteCondExpr(expr1, expr2, expr3);
 }
 
-WolNodeSptr WolExpFactory::rewriteBinaryExpr(WolNode::WolNodeType kind, 
+WolNodeSptr WolExpFactory::rewriteBinaryExpr(WolNodeType kind,
                                              WolNodeSptr expr1, 
                                              WolNodeSptr expr2) {
 
@@ -806,44 +806,44 @@ WolNodeSptr WolExpFactory::rewriteBinaryExpr(WolNode::WolNodeType kind,
    
       switch (kind) {
 
-         case WolNode::WOL_AND_NODE:
+         case WolNodeType::WOL_AND_NODE:
             value = evalFactory->evalAnd(expr1->getValue(), expr2->getValue());
             break;
 
-         case WolNode::WOL_BEQ_NODE:
+         case WolNodeType::WOL_BEQ_NODE:
             value = evalFactory->evalBeq(expr1->getValue(), expr2->getValue());
             break;
 
-         case WolNode::WOL_ADD_NODE:
+         case WolNodeType::WOL_ADD_NODE:
             value = evalFactory->evalAdd(expr1->getValue(), expr2->getValue());
             break;
 
-         case WolNode::WOL_MUL_NODE:
+         case WolNodeType::WOL_MUL_NODE:
             value = evalFactory->evalMul(expr1->getValue(), expr2->getValue());
             break;
 
-         case WolNode::WOL_ULT_NODE:
+         case WolNodeType::WOL_ULT_NODE:
             value = evalFactory->evalUlt(expr1->getValue(), expr2->getValue());
             break;
 
-         case WolNode::WOL_SLL_NODE:
+         case WolNodeType::WOL_SLL_NODE:
             value = evalFactory->evalSll(expr1->getValue(), expr2->getValue());
             break;
 
-         case WolNode::WOL_SRL_NODE:
+         case WolNodeType::WOL_SRL_NODE:
             value = evalFactory->evalSrl(expr1->getValue(), expr2->getValue());
             break;
 
-         case WolNode::WOL_UDIV_NODE:
+         case WolNodeType::WOL_UDIV_NODE:
             value = evalFactory->evalUdiv(expr1->getValue(), expr2->getValue());
             break;
 
-         case WolNode::WOL_UREM_NODE:
+         case WolNodeType::WOL_UREM_NODE:
             value = evalFactory->evalUrem(expr1->getValue(), expr2->getValue());
             break;
 
          default:
-            assert(kind == WolNode::WOL_CONCAT_NODE);
+            assert(kind == WolNodeType::WOL_CONCAT_NODE);
             value = evalFactory->evalConcat(expr1->getValue(),
                                             expr2->getValue());
             break;
@@ -862,7 +862,7 @@ WolNodeSptr WolExpFactory::rewriteBinaryExpr(WolNode::WolNodeType kind,
 
             switch (kind) {
             
-               case WolNode::WOL_BEQ_NODE:
+               case WolNodeType::WOL_BEQ_NODE:
 
                   if(expr2->getPrecision() == 1) 
                      result = makeNotExpr(expr2);
@@ -891,23 +891,23 @@ WolNodeSptr WolExpFactory::rewriteBinaryExpr(WolNode::WolNodeType kind,
                   }
                   break;
 
-               case WolNode::WOL_ULT_NODE:   // 0 < a ---> a != 0
+               case WolNodeType::WOL_ULT_NODE:   // 0 < a ---> a != 0
                   result = rewriteNotExpr(rewriteEqExpr(expr1, expr2));
                   break;
 
-               case WolNode::WOL_ADD_NODE:
+               case WolNodeType::WOL_ADD_NODE:
                   result = expr2;
                   break;
 
-               case WolNode::WOL_MUL_NODE:
-               case WolNode::WOL_SLL_NODE:
-               case WolNode::WOL_SRL_NODE:
-               case WolNode::WOL_UREM_NODE:
-               case WolNode::WOL_AND_NODE:
+               case WolNodeType::WOL_MUL_NODE:
+               case WolNodeType::WOL_SLL_NODE:
+               case WolNodeType::WOL_SRL_NODE:
+               case WolNodeType::WOL_UREM_NODE:
+               case WolNodeType::WOL_AND_NODE:
                   result = makeZeroExpr(expr2->getPrecision());
                   break;
 
-               case WolNode::WOL_UDIV_NODE:
+               case WolNodeType::WOL_UDIV_NODE:
                   {
                      WolNodeSptr temp1 = makeZeroExpr(expr2->getPrecision());
                      WolNodeSptr temp2 = makeOnesExpr(expr2->getPrecision());
@@ -925,13 +925,13 @@ WolNodeSptr WolExpFactory::rewriteBinaryExpr(WolNode::WolNodeType kind,
 
          case WolValue::WOL_SPECIAL_CONST_ONE:
 
-            if (kind == WolNode::WOL_MUL_NODE)
+            if (kind == WolNodeType::WOL_MUL_NODE)
                result = expr2;
             break;
 
          case WolValue::WolConstType::WOL_SPECIAL_CONST_ONES:
 
-            if (kind == WolNode::WOL_BEQ_NODE) {
+            if (kind == WolNodeType::WOL_BEQ_NODE) {
 
                if (expr2->wol_is_xnor_expr()) {   
                   // 1+ == (a xnor b)   ---> a == b
@@ -952,9 +952,9 @@ WolNodeSptr WolExpFactory::rewriteBinaryExpr(WolNode::WolNodeType kind,
                   result = rewriteAndExpr(left, right);
                }
             }
-            else if (kind == WolNode::WOL_AND_NODE)
+            else if (kind == WolNodeType::WOL_AND_NODE)
                result = expr2;
-            else if (kind == WolNode::WOL_ULT_NODE)  // UNSIGNED_MAX < x
+            else if (kind == WolNodeType::WOL_ULT_NODE)  // UNSIGNED_MAX < x
                result = makeFalseExpr();
             break;
          
@@ -962,10 +962,10 @@ WolNodeSptr WolExpFactory::rewriteBinaryExpr(WolNode::WolNodeType kind,
          
             assert(expr1->getPrecision() == 1);
          
-            if(kind == WolNode::WOL_AND_NODE || kind == WolNode::WOL_BEQ_NODE ||
-               kind == WolNode::WOL_MUL_NODE)
+            if(kind == WolNodeType::WOL_AND_NODE || kind == WolNodeType::WOL_BEQ_NODE ||
+               kind == WolNodeType::WOL_MUL_NODE)
                result = expr2;
-            else if(kind == WolNode::WOL_ULT_NODE)
+            else if(kind == WolNodeType::WOL_ULT_NODE)
                result = makeFalseExpr();
             break;
    
@@ -992,7 +992,7 @@ WolNodeSptr WolExpFactory::rewriteBinaryExpr(WolNode::WolNodeType kind,
 
             switch (kind) {
 
-               case WolNode::WOL_BEQ_NODE:
+               case WolNodeType::WOL_BEQ_NODE:
 
                   if(expr1->getPrecision() == 1) 
                      result = makeNotExpr(expr1);
@@ -1020,23 +1020,23 @@ WolNodeSptr WolExpFactory::rewriteBinaryExpr(WolNode::WolNodeType kind,
                   }
                   break;
 
-               case WolNode::WOL_ULT_NODE:   // a < 0 ---> a != 0
+               case WolNodeType::WOL_ULT_NODE:   // a < 0 ---> a != 0
                   result = makeFalseExpr();
                   break;
 
-               case WolNode::WOL_ADD_NODE:
-               case WolNode::WOL_SLL_NODE:
-               case WolNode::WOL_UREM_NODE:
-               case WolNode::WOL_SRL_NODE:
+               case WolNodeType::WOL_ADD_NODE:
+               case WolNodeType::WOL_SLL_NODE:
+               case WolNodeType::WOL_UREM_NODE:
+               case WolNodeType::WOL_SRL_NODE:
                   result = expr1;
                   break;
 
-               case WolNode::WOL_MUL_NODE:
-               case WolNode::WOL_AND_NODE:
+               case WolNodeType::WOL_MUL_NODE:
+               case WolNodeType::WOL_AND_NODE:
                   result = makeZeroExpr(expr1->getPrecision());
                   break;
 
-               case WolNode::WOL_UDIV_NODE:
+               case WolNodeType::WOL_UDIV_NODE:
                   result = makeOnesExpr(expr1->getPrecision());
                   break;
 
@@ -1047,11 +1047,11 @@ WolNodeSptr WolExpFactory::rewriteBinaryExpr(WolNode::WolNodeType kind,
             break;
          case WolValue::WOL_SPECIAL_CONST_ONE:
 
-            if (kind == WolNode::WOL_MUL_NODE || kind == WolNode::WOL_UDIV_NODE)
+            if (kind == WolNodeType::WOL_MUL_NODE || kind == WolNodeType::WOL_UDIV_NODE)
                result = expr1;
-            else if(kind == WolNode::WOL_UREM_NODE)
+            else if(kind == WolNodeType::WOL_UREM_NODE)
                result = makeZeroExpr(expr1->getPrecision());
-            else if(kind == WolNode::WOL_ULT_NODE) {
+            else if(kind == WolNodeType::WOL_ULT_NODE) {
 
                WolNodeSptr temp = makeZeroExpr(expr1->getPrecision());
 
@@ -1060,7 +1060,7 @@ WolNodeSptr WolExpFactory::rewriteBinaryExpr(WolNode::WolNodeType kind,
             break;
          case WolValue::WolConstType::WOL_SPECIAL_CONST_ONES:
 
-            if (kind == WolNode::WOL_BEQ_NODE) {
+            if (kind == WolNodeType::WOL_BEQ_NODE) {
 
                if (expr1->wol_is_xnor_expr()) {   
                   //  (a xnor b) == 1+   ---> a == b
@@ -1081,9 +1081,9 @@ WolNodeSptr WolExpFactory::rewriteBinaryExpr(WolNode::WolNodeType kind,
                   result = rewriteAndExpr(left, right);
                }
             }
-            else if (kind == WolNode::WOL_AND_NODE)
+            else if (kind == WolNodeType::WOL_AND_NODE)
                result = expr1;
-            else if (kind == WolNode::WOL_ULT_NODE) {  // x < UNSIGNED_MAX
+            else if (kind == WolNodeType::WOL_ULT_NODE) {  // x < UNSIGNED_MAX
                result = rewriteNotExpr(rewriteEqExpr(expr1, expr2));
             }
             break;
@@ -1092,8 +1092,8 @@ WolNodeSptr WolExpFactory::rewriteBinaryExpr(WolNode::WolNodeType kind,
 
             assert(expr2->getPrecision() == 1);
 
-            if(kind == WolNode::WOL_AND_NODE || kind == WolNode::WOL_BEQ_NODE ||
-               kind == WolNode::WOL_MUL_NODE || kind == WolNode::WOL_UDIV_NODE)
+            if(kind == WolNodeType::WOL_AND_NODE || kind == WolNodeType::WOL_BEQ_NODE ||
+               kind == WolNodeType::WOL_MUL_NODE || kind == WolNodeType::WOL_UDIV_NODE)
                result = expr1;
             break;
 
@@ -1110,9 +1110,9 @@ WolNodeSptr WolExpFactory::rewriteBinaryExpr(WolNode::WolNodeType kind,
 
    }
    else if (expr1 == expr2 && (
-            kind == WolNode::WOL_BEQ_NODE || kind == WolNode::WOL_ADD_NODE)) {
+            kind == WolNodeType::WOL_BEQ_NODE || kind == WolNodeType::WOL_ADD_NODE)) {
 
-      if (kind == WolNode::WOL_BEQ_NODE)   // x == x ---> True
+      if (kind == WolNodeType::WOL_BEQ_NODE)   // x == x ---> True
          result = makeTrueExpr();
       else if (expr1->getPrecision() >= 2) {   // x+x ---> 2*x
 
@@ -1125,27 +1125,27 @@ WolNodeSptr WolExpFactory::rewriteBinaryExpr(WolNode::WolNodeType kind,
    } 
    else if (((expr1->wol_is_not_node() && expr1->getChild(0) == expr2) ||
             (expr2->wol_is_not_node() && expr2->getChild(0) == expr1)) && 
-            (kind == WolNode::WOL_BEQ_NODE || kind == WolNode::WOL_ADD_NODE)) {
+            (kind == WolNodeType::WOL_BEQ_NODE || kind == WolNodeType::WOL_ADD_NODE)) {
       
-       if (kind == WolNode::WOL_BEQ_NODE) // x == ~x ---> False
+       if (kind == WolNodeType::WOL_BEQ_NODE) // x == ~x ---> False
          result = makeFalseExpr();
        else     // x + ~x == -1
          result = makeOnesExpr(expr1->getPrecision());
    }
-   else if (expr1 == expr2 && (kind == WolNode::WOL_ULT_NODE 
-            || kind == WolNode::WOL_UREM_NODE
-            || kind == WolNode::WOL_UDIV_NODE)) {
+   else if (expr1 == expr2 && (kind == WolNodeType::WOL_ULT_NODE
+            || kind == WolNodeType::WOL_UREM_NODE
+            || kind == WolNodeType::WOL_UDIV_NODE)) {
       
       int len = expr1->getPrecision();
       WolNodeSptr temp2, temp3, temp4, eq;  
 
       switch(kind) {
       
-         case WolNode::WOL_ULT_NODE:  // u < u ---> false
+         case WolNodeType::WOL_ULT_NODE:  // u < u ---> false
             result = makeFalseExpr();
             break;
       
-         case WolNode::WOL_UDIV_NODE:  
+         case WolNodeType::WOL_UDIV_NODE:
             // v/v is 1 if v != 0 and UINT_MAX otherwise
             temp2 = makeZeroExpr(len);
             temp3 = makeOneExpr(len);
@@ -1161,29 +1161,29 @@ WolNodeSptr WolExpFactory::rewriteBinaryExpr(WolNode::WolNodeType kind,
    }    
    else if (expr1->wol_is_bcond_node() && expr2->wol_is_bcond_node() && 
             (expr1->getChild(0) == expr2->getChild(0)) && 
-            ( kind == WolNode::WOL_ULT_NODE
-        	|| kind == WolNode::WOL_BEQ_NODE
-        	|| kind == WolNode::WOL_ADD_NODE
-        	|| kind == WolNode::WOL_UDIV_NODE)) {
+            ( kind == WolNodeType::WOL_ULT_NODE
+        	|| kind == WolNodeType::WOL_BEQ_NODE
+        	|| kind == WolNodeType::WOL_ADD_NODE
+        	|| kind == WolNodeType::WOL_UDIV_NODE)) {
 
       // ITE(c, a1, b1) op ITE (c, a2, b2) ----> ITE (c, a1 op b1, a2 op b2)
       switch (kind) {
       
-         case WolNode::WOL_ULT_NODE:
+         case WolNodeType::WOL_ULT_NODE:
             result = rewriteCondExpr(
                      expr1->getChild(0), 
                      rewriteUltExpr(expr1->getChild(1), expr2->getChild(1)),
                      rewriteUltExpr(expr1->getChild(2), expr2->getChild(2)));
             break;
 
-         case WolNode::WOL_BEQ_NODE:
+         case WolNodeType::WOL_BEQ_NODE:
             result = rewriteCondExpr(
                      expr1->getChild(0), 
                      rewriteEqExpr(expr1->getChild(1), expr2->getChild(1)),  
                      rewriteEqExpr(expr1->getChild(2), expr2->getChild(2)));
             break;
 
-         case WolNode::WOL_ADD_NODE:
+         case WolNodeType::WOL_ADD_NODE:
             result = rewriteCondExpr(
                      expr1->getChild(0),
                      rewriteAddExpr(expr1->getChild(1), expr2->getChild(1)), 
@@ -1199,7 +1199,7 @@ WolNodeSptr WolExpFactory::rewriteBinaryExpr(WolNode::WolNodeType kind,
 
       }   
    }  
-   else if (kind == WolNode::WOL_AND_NODE && expr1->wol_is_concat_node() &&
+   else if (kind == WolNodeType::WOL_AND_NODE && expr1->wol_is_concat_node() &&
             expr2->wol_is_concat_node() && 
             expr1->getChild(0)->getPrecision() == 
                 expr2->getChild(0)->getPrecision()) {
@@ -1676,7 +1676,7 @@ WolNodeSptr WolExpFactory::rewriteAndExpr(WolNodeSptr expr0, WolNodeSptr expr1){
    }
    
    if (result == nullptr)
-      result = rewriteBinaryExpr(WolNode::WOL_AND_NODE, expr0, expr1);
+      result = rewriteBinaryExpr(WolNodeType::WOL_AND_NODE, expr0, expr1);
    
    if (result == nullptr)
       result = makeAndExprInt(expr0, expr1);
@@ -1953,7 +1953,7 @@ WolNodeSptr WolExpFactory::rewriteEqExpr(WolNodeSptr expr0, WolNodeSptr expr1) {
 
 */
     
-   result = rewriteBinaryExpr(WolNode::WOL_BEQ_NODE, expr0, expr1);
+   result = rewriteBinaryExpr(WolNodeType::WOL_BEQ_NODE, expr0, expr1);
 
    if (!result)
       result = makeEqExprInt(expr0, expr1);
@@ -2015,7 +2015,7 @@ WolNodeSptr WolExpFactory::rewriteAddExpr(WolNodeSptr expr0, WolNodeSptr expr1){
 
    //TODO: Normalizing multiplication
 
-   result = rewriteBinaryExpr(WolNode::WOL_ADD_NODE, expr0, expr1);
+   result = rewriteBinaryExpr(WolNodeType::WOL_ADD_NODE, expr0, expr1);
 
    if (!result)
       result = makeAddExprInt(expr0, expr1);
@@ -2088,7 +2088,7 @@ WolNodeSptr WolExpFactory::rewriteMulExpr(WolNodeSptr expr0, WolNodeSptr expr1) 
    }
  
 
-   result = rewriteBinaryExpr(WolNode::WOL_MUL_NODE, expr0, expr1);
+   result = rewriteBinaryExpr(WolNodeType::WOL_MUL_NODE, expr0, expr1);
    if (!result)
       result = makeMulExprInt(expr0, expr1);
 
@@ -2111,7 +2111,7 @@ WolNodeSptr WolExpFactory::rewriteUltExpr(WolNodeSptr expr0, WolNodeSptr expr1){
 
       switch (expr0->getType()) {
    
-         case WolNode::WOL_CONCAT_NODE:
+         case WolNodeType::WOL_CONCAT_NODE:
 
             if (expr0->getChild(0) == expr1->getChild(0)) 
                return rewriteUltExpr(expr0->getChild(1), expr1->getChild(1));
@@ -2119,11 +2119,11 @@ WolNodeSptr WolExpFactory::rewriteUltExpr(WolNodeSptr expr0, WolNodeSptr expr1){
                return rewriteUltExpr(expr0->getChild(0), expr1->getChild(0));
             break;
 
-         case WolNode::WOL_ADD_NODE:
+         case WolNodeType::WOL_ADD_NODE:
             //TODO: Normalize adds expr
 
             break;
-         case WolNode::WOL_MUL_NODE:
+         case WolNodeType::WOL_MUL_NODE:
             //TODO: Normalize muls expr
             break;
          default:
@@ -2132,7 +2132,7 @@ WolNodeSptr WolExpFactory::rewriteUltExpr(WolNodeSptr expr0, WolNodeSptr expr1){
 
    }
         
-   result = rewriteBinaryExpr(WolNode::WOL_ULT_NODE, expr0, expr1);
+   result = rewriteBinaryExpr(WolNodeType::WOL_ULT_NODE, expr0, expr1);
    
    if (!result)
       result = makeUltExprInt(expr0, expr1);   
@@ -2142,7 +2142,7 @@ WolNodeSptr WolExpFactory::rewriteUltExpr(WolNodeSptr expr0, WolNodeSptr expr1){
 
 WolNodeSptr WolExpFactory::rewriteSllExpr(WolNodeSptr expr0, WolNodeSptr expr1) {
 
-   WolNodeSptr result = rewriteBinaryExpr(WolNode::WOL_SLL_NODE, expr0, expr1);
+   WolNodeSptr result = rewriteBinaryExpr(WolNodeType::WOL_SLL_NODE, expr0, expr1);
    if (!result)
       result = makeSllExprInt(expr0, expr1);
 
@@ -2151,7 +2151,7 @@ WolNodeSptr WolExpFactory::rewriteSllExpr(WolNodeSptr expr0, WolNodeSptr expr1) 
 
 WolNodeSptr WolExpFactory::rewriteSrlExpr(WolNodeSptr expr0, WolNodeSptr expr1){
 
-   WolNodeSptr result = rewriteBinaryExpr(WolNode::WOL_SRL_NODE, expr0, expr1);
+   WolNodeSptr result = rewriteBinaryExpr(WolNodeType::WOL_SRL_NODE, expr0, expr1);
    if (!result)
       result = makeSrlExprInt(expr0, expr1);
 
@@ -2176,7 +2176,7 @@ WolNodeSptr WolExpFactory::rewriteUdivExpr(WolNodeSptr expr0, WolNodeSptr expr1)
       }
    }
       
-   result = rewriteBinaryExpr(WolNode::WOL_UDIV_NODE, expr0, expr1);
+   result = rewriteBinaryExpr(WolNodeType::WOL_UDIV_NODE, expr0, expr1);
    if (!result)
       result = makeUdivExprInt(expr0, expr1);
 
@@ -2201,7 +2201,7 @@ WolNodeSptr WolExpFactory::rewriteUremExpr(WolNodeSptr expr0, WolNodeSptr expr1)
       }
    }
     
-   result = rewriteBinaryExpr(WolNode::WOL_UREM_NODE, expr0, expr1);
+   result = rewriteBinaryExpr(WolNodeType::WOL_UREM_NODE, expr0, expr1);
    if (!result)
       result = makeUremExprInt(expr0, expr1);
 
@@ -2213,7 +2213,7 @@ WolNodeSptr WolExpFactory::rewriteConcatExpr(WolNodeSptr expr0, WolNodeSptr expr
    WolNodeSptr result = nullptr;
    
    //TODO: rewrite code
-   result = rewriteBinaryExpr(WolNode::WOL_CONCAT_NODE, expr0, expr1);
+   result = rewriteBinaryExpr(WolNodeType::WOL_CONCAT_NODE, expr0, expr1);
    if (!result)
       result = makeConcatExprInt(expr0, expr1);
 

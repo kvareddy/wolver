@@ -35,6 +35,9 @@ namespace wolver {
     WolEvalFactory *evalFactory = WolMgr::getInstance().getEvalFactory();
     auto parents = node->getParents();
 
+    //FIX ME:
+    return value;
+
     WolValueSptr U_total = nullptr;
     for (auto i : parents) {
 

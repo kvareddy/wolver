@@ -2,6 +2,7 @@
 #define WOLEXPFACTORY_H_INCLUDED
 
 #include <memory>
+
 namespace wolver {
 
 using namespace std;
@@ -9,6 +10,8 @@ using namespace std;
 class WolNode;
 class WolMgr;
 class WolEvalFactory;
+enum class WolNodeType : int;
+
 
 
 class WolExpFactory {
@@ -108,7 +111,7 @@ private :   // functions
    WolNodeSptr rewriteConcatExpr(WolNodeSptr expr1, WolNodeSptr expr2);
    WolNodeSptr rewriteCondExpr(WolNodeSptr expr1, WolNodeSptr expr2, WolNodeSptr expr3);
 
-   WolNodeSptr rewriteBinaryExpr(WolNode::WolNodeType type, WolNodeSptr expr1, WolNodeSptr expr);
+   WolNodeSptr rewriteBinaryExpr(WolNodeType type, WolNodeSptr expr1, WolNodeSptr expr);
   WolNodeSptr normalize_negated_add(WolNodeSptr expr);
 
 private :

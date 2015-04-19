@@ -1,7 +1,9 @@
 #include "wolvalueimpl.h"
+#include "wolevalfactoryimpl.h"
 #include "wolvalue.h"
 #include "wolutil.h"
 #include "wolmgr.h"
+#include "wollog.h"
 #include "wolevalfactory.h"
 #include <boost/dynamic_bitset.hpp>
 #include <boost/ref.hpp>
@@ -44,15 +46,19 @@ namespace wolver
 
   WolValueImplSptr
   WolBoolValueImpl::getNotValueInt () {
-
+    DEBUG4_MSG << "BOOL " << this->getStringRep()
+               << " NOT";
     WolBoolValueImplSptr retValue = makeBoolImpl(!_value);
+    DEBUG4_MSG << "RESULT = " << retValue->getStringRep();
     return retValue;
   }
 
   WolValueImplSptr
   WolConstValueImpl::getNotValueInt () {
-
+	DEBUG4_MSG << "CONST " << this->getStringRep()
+	           << " NOT";
     WolConstValueImplSptr retValue = makeConstImpl(~_value);
+    DEBUG4_MSG << "RESULT = " << retValue->getStringRep();
     return retValue;
   }
 
@@ -72,6 +78,9 @@ namespace wolver
     assert(position > 0);
     assert(position <= prec - 1);
 
+    DEBUG4_MSG << "CONST " << this->getStringRep()
+    	       << " SPLIT " << position ;
+
     //rightValue = _value(0 to _prec - position - 1)
     dbitset rightValue = createSubsetOfDynamicBitSet (_value, 0, prec - position - 1);
 
@@ -84,6 +93,7 @@ namespace wolver
     concatConst->addValue (leftConst);
     concatConst->addValue (rightConst);
 
+    DEBUG4_MSG << "RESULT = " << concatConst->getStringRep();
     return concatConst;
   }
 
@@ -119,82 +129,100 @@ namespace wolver
   WolValueImplSptr
   WolRangeValueImpl::split (int position) {
 
-    assert(_lowValue < _highValue);
-    assert(position > 0);
-    assert(position <= _prec - 1);
+	  assert(_lowValue < _highValue);
+	  assert(position > 0);
+	  assert(position <= _prec - 1);
 
-    //rightLowValue = _lowValue(0 to _prec - position - 1)
-    dbitset rightLowValue = createSubsetOfDynamicBitSet (_lowValue, 0, _prec - position - 1);
+	  DEBUG4_MSG << "RANGE " << this->getStringRep()
+	      	     << " SPLIT " << position ;
 
-    //leftLowValue = _lowValue(_prec - position to _prec - 1)
-    dbitset leftLowValue = createSubsetOfDynamicBitSet (_lowValue, _prec - position, _prec - 1);
+	  //rightLowValue = _lowValue(0 to _prec - position - 1)
+	  dbitset rightLowValue = createSubsetOfDynamicBitSet (_lowValue, 0, _prec - position - 1);
+
+	  //leftLowValue = _lowValue(_prec - position to _prec - 1)
+	  dbitset leftLowValue = createSubsetOfDynamicBitSet (_lowValue, _prec - position, _prec - 1);
 
 
-    //rightHighValue = _highValue(0 to _prec - position - 1)
-    dbitset rightHighValue = createSubsetOfDynamicBitSet (_highValue, 0, _prec - position - 1);
+	  //rightHighValue = _highValue(0 to _prec - position - 1)
+	  dbitset rightHighValue = createSubsetOfDynamicBitSet (_highValue, 0, _prec - position - 1);
 
-    //leftHighValue = _highValue(_prec - position to _prec - 1)
-    dbitset leftHighValue = createSubsetOfDynamicBitSet (_highValue, _prec - position, _prec - 1);
+	  //leftHighValue = _highValue(_prec - position to _prec - 1)
+	  dbitset leftHighValue = createSubsetOfDynamicBitSet (_highValue, _prec - position, _prec - 1);
 
-    if (leftLowValue == leftHighValue) {
-      // create leftLowValue . [righLowValue, rightHighValue]
-      auto rightRange = std::make_shared<WolRangeValueImpl> (rightLowValue,
-							     rightHighValue);
-      auto leftConst = std::make_shared<WolConstValueImpl> (leftLowValue);
-      auto concatRange = std::make_shared<WolConcatValueImpl> ();
-      concatRange->addValue (leftConst);
-      concatRange->addValue (rightRange);
+	  if (leftLowValue == leftHighValue) {
+		  // create leftLowValue . [righLowValue, rightHighValue]
+		  auto rightRange = std::make_shared<WolRangeValueImpl> (rightLowValue,
+				  rightHighValue);
+		  auto leftConst = std::make_shared<WolConstValueImpl> (leftLowValue);
+		  auto concatRange = std::make_shared<WolConcatValueImpl> ();
+		  concatRange->addValue (leftConst);
+		  concatRange->addValue (rightRange);
 
-      return concatRange;
-    }
-    else {
-      int rprec = rightLowValue.size ();
-      auto result = std::make_shared<WolUnionValueImpl> ();
+		  DEBUG4_MSG << "RESULT = " << concatRange->getStringRep();
+		  return concatRange;
+	  }
+	  else {
+		  int rprec = rightLowValue.size ();
+		  auto result = std::make_shared<WolUnionValueImpl> ();
 
-      // create first =  leftLowValue . [rightLowValue, -1]
-      auto leftConst1 = std::make_shared<WolConstValueImpl> (leftLowValue);
-      auto rightRange1 = std::make_shared<WolRangeValueImpl> (
-	  rightLowValue, dbitset (rprec, (unsigned) -1));
-      auto concat1 = std::make_shared<WolConcatValueImpl> ();
-      concat1->addValue (leftConst1);
-      concat1->addValue (rightRange1);
-      result->addValue (concat1);
+		  // create first =  leftLowValue . [rightLowValue, -1]
+		  auto leftConst1 = std::make_shared<WolConstValueImpl> (leftLowValue);
 
-      if (bitSetInc (leftLowValue) > leftHighValue) {
+		  if (rightLowValue == dbitset(rprec, (unsigned) -1)) {
+              auto constant = std::make_shared<WolConstValueImpl> (_lowValue);
+              result->addValue(constant);
+  		  }
+		  else {
+			  auto rightRange1 = std::make_shared<WolRangeValueImpl> (
+					  rightLowValue, dbitset (rprec, (unsigned) -1));
 
-	auto concat2 = std::make_shared<WolConcatValueImpl> ();
+			  auto concat1 = std::make_shared<WolConcatValueImpl> ();
+			  concat1->addValue (leftConst1);
+			  concat1->addValue (rightRange1);
+			  result->addValue (concat1);
+		  }
 
-	if (bitSetInc (leftLowValue) == bitSetDec (leftHighValue)) {
-	  // create second = leftLowValue + 1 . [0, -1]
-	  auto leftConst2 = std::make_shared<WolConstValueImpl> (
-	      bitSetInc (leftLowValue));
-	  concat2->addValue (leftConst2);
-	}
-	else {
-	  // create second = [leftLowValue + 1, leftHighValue - 1]. [0, -1]
-	  auto leftRange2 = std::make_shared<WolRangeValueImpl> (
-	      bitSetInc (leftLowValue), bitSetDec (leftHighValue));
-	  concat2->addValue (leftRange2);
-	}
-	auto rightRange2 = std::make_shared<WolRangeValueImpl> (rprec);
-	concat2->addValue (rightRange2);
-	result->addValue (concat2);
-      }
+		  if (bitSetInc (leftLowValue) > leftHighValue) {
 
-      // create third = leftHighValue. [0, rightHighValue]
-      auto leftConst3 = std::make_shared<WolConstValueImpl> (leftHighValue);
-      auto rightRange3 = std::make_shared<WolRangeValueImpl> (
-	  dbitset (rprec, 0), rightHighValue);
-      auto concat3 = std::make_shared<WolConcatValueImpl> ();
-      concat3->addValue (leftConst3);
-      concat3->addValue (rightRange3);
-      result->addValue (concat3);
+			  auto concat2 = std::make_shared<WolConcatValueImpl> ();
 
-      return result;
-    }
+			  if (bitSetInc (leftLowValue) == bitSetDec (leftHighValue)) {
+				  // create second = leftLowValue + 1 . [0, -1]
+				  auto leftConst2 = std::make_shared<WolConstValueImpl> (
+						  bitSetInc (leftLowValue));
+				  concat2->addValue (leftConst2);
+			  }
+			  else {
+				  // create second = [leftLowValue + 1, leftHighValue - 1]. [0, -1]
+				  auto leftRange2 = std::make_shared<WolRangeValueImpl> (
+						  bitSetInc (leftLowValue), bitSetDec (leftHighValue));
+				  concat2->addValue (leftRange2);
+			  }
+			  auto rightRange2 = std::make_shared<WolRangeValueImpl> (rprec);
+			  concat2->addValue (rightRange2);
+			  result->addValue (concat2);
+		  }
 
-    assert(0);
-    return nullptr;
+		  // create third = leftHighValue. [0, rightHighValue]
+		  auto leftConst3 = std::make_shared<WolConstValueImpl> (leftHighValue);
+
+		  WolValueImplSptr rightRange3 = nullptr;
+		  if( rightHighValue != dbitset(rprec, 0))
+		      rightRange3 = std::make_shared<WolRangeValueImpl> (
+				  dbitset (rprec, 0), rightHighValue);
+		   else
+			   rightRange3 = std::make_shared<WolConstValueImpl> (rightHighValue);
+		  auto concat3 = std::make_shared<WolConcatValueImpl> ();
+		  concat3->addValue (leftConst3);
+		  concat3->addValue (rightRange3);
+		  result->addValue (concat3);
+
+		  DEBUG4_MSG << "RESULT = " << result->getStringRep();
+		  return result;
+	  }
+
+	  assert(0);
+	  return nullptr;
   }
 
   bool
@@ -233,14 +261,22 @@ namespace wolver
   WolValueImplSptr
   WolRangeValueImpl::getNotValueInt() {
 
-    if (isFull()) return shared_from_this();
+	DEBUG4_MSG << "RANGE " << this->getStringRep()
+	  	       << " NOT ";
+
+    if (isFull()) {
+    	DEBUG4_MSG << "RESULT = " << this->getStringRep();
+    	return shared_from_this();
+    }
     assert(checkConsistency());
 
     int position = OptimalSplitPosition();
     if (position == 0) position = _prec/2;
     auto rangeSplit = split(position);
 
-    return rangeSplit->getNotValueInt();
+    WolValueImplSptr retValue = rangeSplit->getNotValueInt();
+    DEBUG4_MSG << "RESULT = " << retValue->getStringRep();
+    return retValue;
   }
 
   WolValueSptr
@@ -256,10 +292,10 @@ namespace wolver
     std::stringstream ss;
     std::string value;
 
-    ss << "<begin Union>" << endl;
+    ss << "<U>";
     for (auto i : _values)
-      ss << i->getStringRep () << endl;
-    ss << "<end Union>" << endl;
+      ss << i->getStringRep() ;
+    ss << "<U>";
 
     return ss.str ();
   }
@@ -267,27 +303,30 @@ namespace wolver
   WolValueImplSptr
   WolUnionValueImpl::split(int position) {
 
+	  DEBUG4_MSG << "UNION " << this->getStringRep()
+	  	  	     << " SPLIT " << position;
 
-    WolUnionValueImplSptr result = makeUnionImpl();
-    for (auto i : _values){
-      WolValueImplSptr split = i->split(position);
+	  WolUnionValueImplSptr result = makeUnionImpl();
+	  for (auto i : _values){
+		  WolValueImplSptr split = i->split(position);
 
-      WolValueImplType type = split->getImplType();
-      assert(type == WOL_VALUE_IMPL_CONCAT_TYPE ||
-             type == WOL_VALUE_IMPL_UNION_TYPE );
+		  WolValueImplType type = split->getImplType();
+		  assert(type == WOL_VALUE_IMPL_CONCAT_TYPE ||
+				  type == WOL_VALUE_IMPL_UNION_TYPE );
 
-      if (type == WOL_VALUE_IMPL_CONCAT_TYPE) {
-	result->addValue(split);
-      }
-      else {
-	WolUnionValueImplSptr union_val = dUnionCast(split);
-	for (auto it = union_val->begin(); it != union_val->end(); it++) {
-	  result->addValue(*it);
-	}
-      }
-    }
+		  if (type == WOL_VALUE_IMPL_CONCAT_TYPE) {
+			  result->addValue(split);
+		  }
+		  else {
+			  WolUnionValueImplSptr union_val = dUnionCast(split);
+			  for (auto it = union_val->begin(); it != union_val->end(); it++) {
+				  result->addValue(*it);
+			  }
+		  }
+	  }
 
-    return result;
+	  DEBUG4_MSG << "RESULT = " << result->getStringRep();
+	  return result;
   }
 
   void
@@ -340,11 +379,14 @@ namespace wolver
   WolValueImplSptr
   WolUnionValueImpl::getNotValueInt() {
 
+	DEBUG4_MSG << "UNION " << this->getStringRep()
+	  	  	   << " NOT ";
     WolUnionValueImplSptr retValue = makeUnionImpl();
     for (auto i :_values) {
       retValue->addValue(i->getNotValueInt());
     }
 
+    DEBUG4_MSG << "RESULT = " << retValue->getStringRep();
     return retValue;
   }
 
@@ -378,10 +420,10 @@ namespace wolver
     std::stringstream ss;
     std::string value;
 
-    ss << "<begin Concat>" << endl;
+    ss << "<C>";
     for (auto i : _values)
-      ss << i->getStringRep () << endl;
-    ss << "<end Concat>" << endl;
+      ss << i->getStringRep ();
+    ss << "<C>";
 
     return ss.str ();
   }
@@ -395,83 +437,89 @@ namespace wolver
   WolValueImplSptr
   WolConcatValueImpl::split(int position) {
 
-    assert(position > 0);
-    assert(position < _prec);
+	  DEBUG4_MSG << "CONCAT " << this->getStringRep()
+	      	  	 << " SPLIT " << position;
 
-    //check if split is required
-    int sumPrecision = 0;
-    bool split = true;
-    WolValueImplSptr toSplit;
-    int index = 0;
-    for (auto i : _values) {
-      sumPrecision += i->getPrecision();
-      if (sumPrecision == position) {
-	split = false;
-	break;
-      }
-      else if (sumPrecision > position) {
-	toSplit = i;
-	break;
-      }
-      index++;
-    }
+	  assert(position > 0);
+	  assert(position < _prec);
 
-    //if the data already has a split at position
-    if (!split) {
-      return shared_from_this();
-    }
+	  //check if split is required
+	  int sumPrecision = 0;
+	  bool split = true;
+	  WolValueImplSptr toSplit;
+	  int index = 0;
+	  for (auto i : _values) {
+		  sumPrecision += i->getPrecision();
+		  if (sumPrecision == position) {
+			  split = false;
+			  break;
+		  }
+		  else if (sumPrecision > position) {
+			  toSplit = i;
+			  break;
+		  }
+		  index++;
+	  }
 
-    int newPosition = position - (sumPrecision - toSplit->getPrecision());
-    WolValueImplSptr subSplit = toSplit->split(newPosition);
+	  //if the data already has a split at position
+	  if (!split) {
+		  DEBUG4_MSG << "RESULT =" << this->getStringRep();
+		  return shared_from_this();
+	  }
 
-    WolValueImplType type = subSplit->getImplType();
-    assert(type == WOL_VALUE_IMPL_CONCAT_TYPE ||
-           type == WOL_VALUE_IMPL_UNION_TYPE );
+	  int newPosition = position - (sumPrecision - toSplit->getPrecision());
+	  WolValueImplSptr subSplit = toSplit->split(newPosition);
+
+	  WolValueImplType type = subSplit->getImplType();
+	  assert(type == WOL_VALUE_IMPL_CONCAT_TYPE ||
+			  type == WOL_VALUE_IMPL_UNION_TYPE );
 
 
-    if (type == WOL_VALUE_IMPL_CONCAT_TYPE) {
+	  if (type == WOL_VALUE_IMPL_CONCAT_TYPE) {
 
-      WolConcatValueImplSptr result = makeConcatImpl();
-      WolConcatValueImplSptr concat_val = dConcatCast(subSplit);
+		  WolConcatValueImplSptr result = makeConcatImpl();
+		  WolConcatValueImplSptr concat_val = dConcatCast(subSplit);
 
-      // add stuff from _values and from subSplit
-      for (int i = 0; i < index; i++)
-	result->addValue(_values[i]);
-      for (auto it = concat_val->begin(); it != concat_val->end(); it++)
-      	  result->addValue(*it);
-      for (unsigned i = index + 1; i < _values.size(); i++)
-	result->addValue(_values[i]);
+		  // add stuff from _values and from subSplit
+		  for (int i = 0; i < index; i++)
+			  result->addValue(_values[i]);
+		  for (auto it = concat_val->begin(); it != concat_val->end(); it++)
+			  result->addValue(*it);
+		  for (unsigned i = index + 1; i < _values.size(); i++)
+			  result->addValue(_values[i]);
 
-      return result;
-    }
-    else {
+		  DEBUG4_MSG << "RESULT =" << result->getStringRep();
+		  return result;
+	  }
+	  else {
 
-      WolUnionValueImplSptr result = makeUnionImpl();
-      WolUnionValueImplSptr union_val = dUnionCast(subSplit);
+		  WolUnionValueImplSptr result = makeUnionImpl();
+		  WolUnionValueImplSptr union_val = dUnionCast(subSplit);
 
-      for (auto it = union_val->begin(); it != union_val->end(); it++) {
+		  for (auto it = union_val->begin(); it != union_val->end(); it++) {
 
-	assert((*it)->getImplType() == WOL_VALUE_IMPL_CONCAT_TYPE);
+			  assert((*it)->getImplType() == WOL_VALUE_IMPL_CONCAT_TYPE);
 
-	WolConcatValueImplSptr tempResult = makeConcatImpl();
-	WolConcatValueImplSptr concat_val = dConcatCast(*it);
+			  WolConcatValueImplSptr tempResult = makeConcatImpl();
+			  WolConcatValueImplSptr concat_val = dConcatCast(*it);
 
-	// add stuff from _values and *it
-	for (int i = 0; i < index; i++)
-	  tempResult->addValue(_values[i]);
-	for (auto it1 = concat_val->begin(); it1 != concat_val->end(); it1++)
-	  tempResult->addValue(*it1);
-	for (unsigned  i = index + 1; i < _values.size(); i++)
-	  tempResult->addValue(_values[i]);
+			  // add stuff from _values and *it
+			  for (int i = 0; i < index; i++)
+				  tempResult->addValue(_values[i]);
+			  for (auto it1 = concat_val->begin(); it1 != concat_val->end(); it1++)
+				  tempResult->addValue(*it1);
+			  for (unsigned  i = index + 1; i < _values.size(); i++)
+				  tempResult->addValue(_values[i]);
 
-	result->addValue(tempResult);
-      }
+			  result->addValue(tempResult);
+		  }
 
-      return result;
-    }
+		  DEBUG4_MSG << "RESULT =" << result->getStringRep();
+		  return result;
+	  }
 
-    assert(0);
-    return nullptr;
+	  assert(0);
+	  return nullptr;
   }
 
 
@@ -479,28 +527,33 @@ namespace wolver
   WolConcatValueImpl::getSlices(int upper, int lower) {
   //TODO: need for optimizations
 
+    upper = _prec - upper - 1;
+    lower = _prec - lower - 1;
     WolConcatValueImplSptr retValue = makeConcatImpl();
     int tempPrecision = 0;
-    for(auto i : _values) {
+    for(WolValueImplSptr i : _values) {
 
       WolValueImplSptr temp = nullptr;
-      int tempNextPrecision = tempPrecision + i->getPrecision();
-      if (tempPrecision < lower && tempNextPrecision > upper)
+      int tempNextPrecision = tempPrecision + i->getPrecision() - 1;
+
+      if (tempPrecision > upper) break;
+
+      if ((tempPrecision < lower) && (tempNextPrecision > upper))
 	  return i->getSlices(lower-tempPrecision, upper-tempPrecision);
 
-      if (tempPrecision < lower && tempNextPrecision > lower && tempNextPrecision <= upper)
+      if ((tempPrecision < lower) && (tempNextPrecision > lower) && (tempNextPrecision <= upper))
           temp = i->getSlices(lower - tempPrecision, i->getPrecision());
 
-      if (tempPrecision >= lower && tempNextPrecision <= upper)
+      if ((tempPrecision >= lower) && (tempNextPrecision <= upper))
 	  temp = i;
 
-      if (tempPrecision >= lower && tempNextPrecision > upper)
+      if ((tempPrecision >= lower) && (tempNextPrecision > upper))
 	  temp = i->getSlices(0, upper - tempPrecision);
 
-      if (tempPrecision >= upper) break;
-
-       retValue->addValue(temp);
+       if (temp)
+           retValue->addValue(temp);
        tempPrecision += i->getPrecision();
+
     }
 
      if (retValue->numValues() == 1)
@@ -546,11 +599,14 @@ namespace wolver
   WolValueImplSptr
   WolConcatValueImpl::getNotValueInt() {
 
+	  DEBUG4_MSG << "CONCAT " << this->getStringRep()
+			     << " NOT" ;
     WolConcatValueImplSptr retValue = makeConcatImpl();
     for (auto i :_values) {
       retValue->addValue(i->getNotValueInt());
     }
 
+    DEBUG4_MSG << "RESULT =" << retValue->getStringRep();
     return retValue;
   }
 
@@ -558,7 +614,7 @@ namespace wolver
   WolConcatValueImpl::containsValue(dbitset const_val) {
 
     int low_precision = 0;
-    int high_precision = 0;
+    int high_precision = -1;
     for(auto i :_values) {
       high_precision += i->getPrecision();
       dbitset temp = createSubsetOfDynamicBitSet(const_val,low_precision,high_precision);

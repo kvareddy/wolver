@@ -10,10 +10,23 @@
 
 #include <unordered_set>
 #include "common.h"
-#include "wolexp.h"
 
 namespace wolver {
 
+class WolNode;
+
+struct expHashW
+      : std::unary_function<WolNodeSptr, std::size_t>
+  {
+     std::size_t operator()(WolNodeSptr const& x) const;
+  };
+
+  struct expEqualToW
+      : std::binary_function<WolNodeSptr, WolNodeSptr, bool>
+  {
+    bool operator()(WolNodeSptr const& x, WolNodeSptr const& y) const;
+
+  };
 
 class WolWorkList {
 
@@ -32,6 +45,7 @@ public: //methods
    bool isEmpty() {return _workList.empty();}
    bool performImplication(nodeL &changes, WolWorkList &wl);
    WolWorkList getNeighbors();
+   std::string str();
 //   Iterator begin() { return _workList.begin();}
 //   Iterator end() {return _workList.end();}
 
@@ -39,30 +53,9 @@ private: // methods
 
 
 private: //data
-
-  struct expHash
-      : std::unary_function<WolNodeSptr, std::size_t>
-  {
-     std::size_t operator()(WolNodeSptr const& x) const
-     {
-        return x->getId();
-     }
-  };
-
-  struct expEqualTo
-      : std::binary_function<WolNodeSptr, WolNodeSptr, bool>
-  {
-    bool operator()(WolNodeSptr const& x, WolNodeSptr const& y) const
-    {
-        return x->getId() == y->getId();
-    }
-  };
-
-  std::unordered_set<WolNodeSptr, expHash, expEqualTo > _workList;
-
+  std::unordered_set<WolNodeSptr, expHashW, expEqualToW > _workList;
 
 };
-
 
 }
 

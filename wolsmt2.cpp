@@ -1,11 +1,13 @@
 #include "wolsmt2.h"
 #include "wolmgr.h"
 #include "wolexpfactory.h"
+#include "wolexp.h"
 #include <iostream>
 #include <stdio.h>
 #include <assert.h>
 #include <string>
 #include <memory>
+#include <fstream>
 
 namespace wolver
 {
@@ -1765,9 +1767,27 @@ WolSmt2Parser::print () {
 	int numOutputs = _outputs.size ();
 	for (int i = 0; i < numOutputs; i++) {
 		_outputs[i]->print ();
-		cout << endl;
+		OUTPUT_MSG << endl;
 	}
-
 }
+
+void
+WolSmt2Parser::printgv () {
+
+/*	std::ofstream fs;
+	fs.open("output.gv");
+	assert(_letMap.size () == 0);
+	int numOutputs = _outputs.size ();
+	fs << "digraph G {" << std::endl;
+	for (int i = 0; i < numOutputs; i++) {
+		_outputs[i]->printgv(fs);
+	}
+	fs << "}" << std::endl;
+    fs.close();
+*/
+}
+
+
+
 
 }

@@ -8,8 +8,10 @@
 #include <vector>
 #include <array>
 #include <iostream>
+#include <fstream>
 #include <memory>
 #include "common.h"
+
 
 namespace wolver
 {
@@ -20,59 +22,57 @@ class WolNode;
 class WolComplexNode;
 class WolValue;
 
-
+enum class  WolNodeType : int {
+	WOL_INVALID_NODE = 0,
+	WOL_BV_CONST_NODE = 1,
+	WOL_BV_VAR_NODE = 2,
+	WOL_SLICE_NODE = 3,
+	WOL_AND_NODE = 4,
+	WOL_BEQ_NODE = 5,             /* equality on bit vectors */
+	WOL_ADD_NODE = 6,
+	WOL_MUL_NODE = 7,
+	WOL_ULT_NODE = 8,
+	WOL_SLL_NODE = 10,
+	WOL_SRL_NODE = 11,
+	WOL_UDIV_NODE = 12,
+	WOL_UREM_NODE = 14,
+	WOL_CONCAT_NODE = 17,
+	WOL_BCOND_NODE = 18,          /* conditional on bit vectors */
+	WOL_PROXY_NODE = 19,          /* simplified expression without children */
+	WOL_BV_NOT_NODE = 20,
+	WOL_NUM_OPS_NODE = 21
+};
 
 
 class WolNode {
 
-public:  //Types
-	enum WolNodeType {
-		WOL_INVALID_NODE = 0,
 
-		WOL_BV_CONST_NODE = 1,
-		WOL_BV_VAR_NODE = 2,
-		WOL_SLICE_NODE = 3,
-		WOL_AND_NODE = 4,
-		WOL_BEQ_NODE = 5,             /* equality on bit vectors */
-		WOL_ADD_NODE = 6,
-		WOL_MUL_NODE = 7,
-		WOL_ULT_NODE = 8,
-		WOL_SLL_NODE = 10,
-		WOL_SRL_NODE = 11,
-		WOL_UDIV_NODE = 12,
-	        WOL_UREM_NODE = 14,
-		WOL_CONCAT_NODE = 17,
-		WOL_BCOND_NODE = 18,          /* conditional on bit vectors */
-		WOL_PROXY_NODE = 19,          /* simplified expression without children */
-                WOL_BV_NOT_NODE = 20,
-		WOL_NUM_OPS_NODE = 21
-	};
 public :
    WolNode(WolNodeType type , int precision);
    virtual ~WolNode() {}
 
 public: //Methods
-   bool wol_is_bv_const_node() {return (_type == WOL_BV_CONST_NODE);}
-   bool wol_is_bv_var_node() {return (_type == WOL_BV_VAR_NODE);}
-   bool wol_is_leaf_node() { return ((_type == WOL_BV_CONST_NODE) ||
-       (_type == WOL_BV_VAR_NODE));}
-   bool wol_is_slice_node () {return (_type == WOL_SLICE_NODE);}
-   bool wol_is_and_node () {return (_type == WOL_AND_NODE);}
-   bool wol_is_beq_node () {return (_type == WOL_BEQ_NODE);}
-   bool wol_is_add_node () {return (_type == WOL_ADD_NODE);}
-   bool wol_is_mul_node () {return (_type == WOL_MUL_NODE);}
-   bool wol_is_ult_node () {return (_type == WOL_ULT_NODE);}
-   bool wol_is_sll_node () {return (_type == WOL_SLL_NODE);}
-   bool wol_is_srl_node () {return (_type == WOL_SRL_NODE);}
-   bool wol_is_udiv_node () {return (_type == WOL_UDIV_NODE);}
-   bool wol_is_urem_node () {return (_type == WOL_UREM_NODE);}
-   bool wol_is_concat_node () {return (_type == WOL_CONCAT_NODE);}
-   bool wol_is_bcond_node () {return (_type == WOL_BCOND_NODE);}
-   bool wol_is_not_node() {return (_type == WOL_BV_NOT_NODE);}
-   bool wol_is_proxy_node () {return (_type == WOL_PROXY_NODE);}
-   bool wol_is_slice_simplifiable_node () {return (_type == WOL_BV_CONST_NODE) ||
-       (_type == WOL_BV_CONST_NODE) ||
-                                                  (_type == WOL_SLICE_NODE);}
+   bool wol_is_bv_const_node() {return (_type == WolNodeType::WOL_BV_CONST_NODE);}
+   bool wol_is_bv_var_node() {return (_type == WolNodeType::WOL_BV_VAR_NODE);}
+   bool wol_is_leaf_node() { return ((_type == WolNodeType::WOL_BV_CONST_NODE) ||
+       (_type == WolNodeType::WOL_BV_VAR_NODE));}
+   bool wol_is_slice_node () {return (_type == WolNodeType::WOL_SLICE_NODE);}
+   bool wol_is_and_node () {return (_type == WolNodeType::WOL_AND_NODE);}
+   bool wol_is_beq_node () {return (_type == WolNodeType::WOL_BEQ_NODE);}
+   bool wol_is_add_node () {return (_type == WolNodeType::WOL_ADD_NODE);}
+   bool wol_is_mul_node () {return (_type == WolNodeType::WOL_MUL_NODE);}
+   bool wol_is_ult_node () {return (_type == WolNodeType::WOL_ULT_NODE);}
+   bool wol_is_sll_node () {return (_type == WolNodeType::WOL_SLL_NODE);}
+   bool wol_is_srl_node () {return (_type == WolNodeType::WOL_SRL_NODE);}
+   bool wol_is_udiv_node () {return (_type == WolNodeType::WOL_UDIV_NODE);}
+   bool wol_is_urem_node () {return (_type == WolNodeType::WOL_UREM_NODE);}
+   bool wol_is_concat_node () {return (_type == WolNodeType::WOL_CONCAT_NODE);}
+   bool wol_is_bcond_node () {return (_type == WolNodeType::WOL_BCOND_NODE);}
+   bool wol_is_not_node() {return (_type == WolNodeType::WOL_BV_NOT_NODE);}
+   bool wol_is_proxy_node () {return (_type == WolNodeType::WOL_PROXY_NODE);}
+   bool wol_is_slice_simplifiable_node () {return (_type == WolNodeType::WOL_BV_CONST_NODE) ||
+       (_type == WolNodeType::WOL_BV_CONST_NODE) ||
+                                                  (_type == WolNodeType::WOL_SLICE_NODE);}
    void addParent(WolNodeSptr node);
    void incRefCount() {_refCount++;}
    void setName(std::string name) {_name = name;}
@@ -97,10 +97,9 @@ public: //Methods
 
 public: // virtual methods
 
-   virtual void print()
-   {
-      cout << _name;
-   }
+   virtual void print();
+   virtual void printgv(std::ofstream& fs);
+   virtual void unsetPrintFlag();
    virtual bool wol_is_xor_expr() {return false;}
    virtual bool wol_is_xnor_expr() {return false;} 
    virtual bool wol_is_const_zero_or_ones_expr();
@@ -131,6 +130,7 @@ protected: // data
   int _refCount;  //reference count
   int _id;
   bool _implyFlag;
+  bool _printFlag;
   std::string _name;
   std::vector<WolNodeWptr> _parents;
   WolValueSptr _value;
@@ -175,6 +175,8 @@ void setChildren(WolNodeSptr child, int index);
 void setHighPrecision(int high_prec) {_highPrec = high_prec;}
 void setLowPrecision(int low_prec) {_lowPrec = low_prec;}    
 void print();
+void printgv(std::ofstream& fs);
+void unsetPrintFlag();
 bool wol_is_xor_expr();
 bool wol_is_xnor_expr();
 bool wol_is_const_zero_or_ones_expr() {return false;}

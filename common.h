@@ -19,6 +19,7 @@ class WolBoolValueImpl;
 class WolUnionValueImpl;
 class WolConcatValueImpl;
 
+
 #define WOL_FIND_AND_NODE_CONTRADICTION_LIMT 20
 
 
@@ -58,6 +59,7 @@ typedef std::pair<bool, nodeL> implResult;
 #define dRangeCast(x) std::dynamic_pointer_cast<WolRangeValueImpl>(x);
 #define dUnionCast(x) std::dynamic_pointer_cast<WolUnionValueImpl>(x);
 #define dConcatCast(x) std::dynamic_pointer_cast<WolConcatValueImpl>(x);
+
 
 }
 

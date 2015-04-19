@@ -29,6 +29,7 @@ typedef std::map<WolValueImpl::WolValueImplType, evalSpliceFunctionPtr> evalSpli
 
 class WolEvalFactoryImpl: public WolEvalFactory {
 
+friend class WolRangeValueImpl;
 public:
    WolEvalFactoryImpl() {
        initializeAllMaps();      

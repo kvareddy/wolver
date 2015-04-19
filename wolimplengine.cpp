@@ -9,6 +9,8 @@
 #include "wolimplengine.h"
 #include "wolexp.h"
 #include "wolworklist.h"
+#include "wollog.h"
+#include "wolmgr.h"
 
 namespace wolver {
 
@@ -57,8 +59,9 @@ namespace wolver {
     prev.setImplyFlag();
 
     while(true) {
-
+      WolMgr::getInstance().printgv();
       WolWorkList next;
+      DEBUG_MSG << "Performing Implication on " << curr.str();
       bool output = curr.performImplication(changes, next);
       prev.unsetImplyFlag();
 

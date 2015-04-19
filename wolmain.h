@@ -1,7 +1,13 @@
 #ifndef WOLMAIN_H_INCLUDED
 #define WOLMAIN_H_INCLUDED
 
-int wolver_main (int argc, char **argv);
+#include<stdio.h>
+#include<fstream>
 
+namespace wolver {
+
+int wolver_main (FILE* input_file, FILE* output_file);
+
+}
 #endif
 

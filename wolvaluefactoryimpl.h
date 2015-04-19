@@ -5,7 +5,6 @@
 #include <string>
 #include "wolvaluefactory.h"
 #include "common.h"
-#include "wolvalue.h"
 
 namespace wolver {
 

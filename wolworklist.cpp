@@ -6,10 +6,34 @@
  */
 
 #include "wolworklist.h"
+#include "wollog.h"
+#include "wolexp.h"
 #include <functional>
 
 
 namespace wolver {
+
+std::size_t
+expHashW::operator()(WolNodeSptr const& x) const
+{
+   return x->getId();
+}
+
+bool
+expEqualToW::operator()(WolNodeSptr const& x, WolNodeSptr const& y) const
+{
+   return x->getId() == y->getId();
+}
+
+
+std::string
+WolWorkList::str() {
+	std::stringstream sstm;
+	for (auto i : _workList) {
+		sstm << " " << i->getId();
+	}
+	return sstm.str();
+}
 
 void
 WolWorkList::addNode(WolNodeSptr node) {
@@ -45,6 +69,7 @@ bool
 WolWorkList::performImplication(nodeL &changes, WolWorkList &wl) {
 
   for(auto i : _workList) {
+    DEBUG1_MSG << "Peforming implication on node " << i->getId();
     int output = i->performImplication();
 
     // conflict

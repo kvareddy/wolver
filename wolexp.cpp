@@ -4,6 +4,7 @@
 #include "wolvaluefactory.h"
 #include "wolvalue.h"
 #include "wolvaluefactory.h"
+#include "wollog.h"
 #include <iostream>
 #include <assert.h>
 #include <string.h>
@@ -17,6 +18,7 @@ WolNode::WolNode(WolNodeType type, int precision)
       : _type(type),
         _precision(precision),
         _implyFlag(false),
+		_printFlag(false),
         _svalue(nullptr)
 {
    _arity = 0;
@@ -103,16 +105,16 @@ WolNode::performBackwardImplication(WolNodeSptr p,
       implyLeft = true;
     }
     switch(parentType) {
-      case WOL_AND_NODE:
+      case WolNodeType::WOL_AND_NODE:
 	tempResult = evalFactory->evalAndB(parentValue, operandValue);
 	break;
-      case WOL_BEQ_NODE:
+      case WolNodeType::WOL_BEQ_NODE:
 	tempResult = evalFactory->evalBeqB(parentValue, operandValue);
 	break;
-      case WOL_ULT_NODE:
+      case WolNodeType::WOL_ULT_NODE:
 	tempResult = evalFactory->evalUltB(parentValue, operandValue, implyLeft);
 	break;
-      case WOL_CONCAT_NODE:
+      case WolNodeType::WOL_CONCAT_NODE:
 	tempResult = evalFactory->evalConcatB(parentValue, operandValue, implyLeft);
 	break;
       default:
@@ -120,7 +122,7 @@ WolNode::performBackwardImplication(WolNodeSptr p,
     }
   }
   else if (parentArity == 3) {
-    assert(parentType == WOL_BCOND_NODE);
+    assert(parentType == WolNodeType::WOL_BCOND_NODE);
     WolValueSptr operandValue1 = operand1;
     WolValueSptr operandValue2 = operand2;
     int position = -1;
@@ -136,9 +138,10 @@ WolNode::performBackwardImplication(WolNodeSptr p,
     tempResult = evalFactory->evalCondB(parentValue, operandValue1, operandValue2, position);
   }
   else {
-    assert(parentType == WOL_SLICE_NODE ||parentType == WOL_BV_NOT_NODE);
+    assert(parentType == WolNodeType::WOL_SLICE_NODE ||
+    	   parentType == WolNodeType::WOL_BV_NOT_NODE);
 
-    if (parentType == WOL_SLICE_NODE) {
+    if (parentType == WolNodeType::WOL_SLICE_NODE) {
     	tempResult = evalFactory->evalSpliceB(parentValue,
     										  parent->getHighPrecision(),
 											  parent->getLowPrecision(),
@@ -183,16 +186,16 @@ WolNode::performBackwardImplication() {
 			}
 
 			switch(parentType) {
-			case WOL_AND_NODE:
+			case WolNodeType::WOL_AND_NODE:
 				tempResult = evalFactory->evalAndB(parentValue, operandValue);
 				break;
-			case WOL_BEQ_NODE:
+			case WolNodeType::WOL_BEQ_NODE:
 				tempResult = evalFactory->evalBeqB(parentValue, operandValue);
 				break;
-			case WOL_ULT_NODE:
+			case WolNodeType::WOL_ULT_NODE:
 				tempResult = evalFactory->evalUltB(parentValue, operandValue, implyLeft);
 				break;
-			case WOL_CONCAT_NODE:
+			case WolNodeType::WOL_CONCAT_NODE:
 				tempResult = evalFactory->evalConcatB(parentValue, operandValue, implyLeft);
 				break;
 			default:
@@ -200,7 +203,7 @@ WolNode::performBackwardImplication() {
 			}
 		}
 		else if (parentArity == 3) {
-			assert(parentType == WOL_BCOND_NODE);
+			assert(parentType == WolNodeType::WOL_BCOND_NODE);
 			WolValueSptr operandValue1 = nullptr;
 			WolValueSptr operandValue2 = nullptr;
 			int position = -1;
@@ -222,9 +225,10 @@ WolNode::performBackwardImplication() {
 			tempResult = evalFactory->evalCondB(parentValue, operandValue1, operandValue2, position);
 		}
 		else {
-			assert(parentType == WOL_SLICE_NODE || parentType == WOL_BV_NOT_NODE);
+			assert(parentType == WolNodeType::WOL_SLICE_NODE ||
+				  parentType == WolNodeType::WOL_BV_NOT_NODE);
 
-			if (parentType == WOL_SLICE_NODE) {
+			if (parentType == WolNodeType::WOL_SLICE_NODE) {
 				tempResult = evalFactory->evalSpliceB(parentValue,
 						parent->getHighPrecision(),
 						parent->getLowPrecision(),
@@ -253,23 +257,48 @@ WolNode::performBackwardImplication() {
 int
 WolNode::performImplication() {
 
+  DEBUG2_MSG << "Initial Value " << _value->getStringRep();
   WolValueSptr currValue = performBackwardImplication();
   if(!currValue) return -1;
+  DEBUG2_MSG << "performed Backward Implication " << currValue->getStringRep();
 
   WolValueSptr prevValue = _value;
   WolEvalFactory *evalFactory = WolMgr::getInstance().getEvalFactory();
 
   WolValueSptr intersectionValue = evalFactory->evalIntersection(prevValue, currValue);
   if (!intersectionValue) return -1;
+  DEBUG2_MSG << "performed Intersection " << intersectionValue->getStringRep();
 
   WolValueSptr diff1 = evalFactory->evalDiff(prevValue, currValue);
-  WolValueSptr diff2 = evalFactory->evalDiff(currValue, prevValue);
+  if (diff1) {
+  	  DEBUG2_MSG << "Performed diff1 (prev - curr)" << diff1->getStringRep();
+  }
+    else {
+  	  DEBUG2_MSG << "Performed diff1 (prev - curr) Empty";
+  }
 
-  if(!diff1 & !diff2) return 0;
-  if (!diff1) return 1;
+  WolValueSptr diff2 = evalFactory->evalDiff(currValue, prevValue);
+  if (diff2) {
+  	  DEBUG2_MSG << "Performed diff2 (prev - curr)" << diff2->getStringRep();
+    }
+    else {
+  	  DEBUG2_MSG << "Performed diff2 (prev - curr) Empty";
+  }
+
+  if(!diff1 & !diff2) {
+	  DEBUG2_MSG << "Nothing Happened";
+	  return 0;
+  }
+
+  if (!diff1) {
+	  DEBUG2_MSG << "Enabling backward implication";
+	  return 1;
+  }
 
   if(!_svalue) _svalue = prevValue;
   _value = intersectionValue;
+  DEBUG2_MSG <<  "Enabling both forward and backward implication " << _value->getStringRep();
+
 
   return 2;
 }
@@ -278,6 +307,22 @@ WolValueSptr
 WolNode::getRandomValue() {
 
   return _value->getRandomValue();
+}
+
+void WolNode::print()
+{
+	OUTPUT_MSG << _name;
+}
+
+void WolNode::printgv(std::ofstream& fs)
+{
+	if (!_printFlag)
+		fs <<  _id << "[label=\"" << _name << _id << "\n" << _value->getStringRep() <<"\"];" << std::endl;
+	_printFlag = true;
+}
+
+void WolNode::unsetPrintFlag() {
+	if (_printFlag) _printFlag = false;
 }
 
 WolComplexNode::WolComplexNode(WolNodeType type,
@@ -342,13 +387,35 @@ WolComplexNode::~WolComplexNode() {
 
 void WolComplexNode::print() {
 
-   cout << '(' << _name;
-   for (int i = 0; i < _arity ; i++) {
-         cout << " " ;
-         _children[i]->print();
-   }
-   cout << ')';
-   
+	OUTPUT_MSG << '(' << _name;
+	for (int i = 0; i < _arity ; i++) {
+		OUTPUT_MSG << " " ;
+		_children[i]->print();
+	}
+	OUTPUT_MSG << ')';
+
+}
+
+void WolComplexNode::printgv(std::ofstream& fs)
+{
+	if (!_printFlag) {
+		fs <<  _id << "[label=\"" << _name << _id << "\n" << _value->getStringRep() <<"\"];" << std::endl;
+		 for (int i = 0; i < _arity ; i++) {
+			 _children[i]->printgv(fs);
+		     fs << _id  << " -> " << _children[i]->getId() << " ;" << std::endl;
+		 }
+		_printFlag = true;
+	}
+}
+
+void WolComplexNode::unsetPrintFlag() {
+
+	if (_printFlag) {
+		_printFlag = false;
+		for (int i = 0; i < _arity ; i++) {
+			_children[i]->unsetPrintFlag();
+		}
+	}
 }
 
 void WolComplexNode::setChildren(WolNodeSptr child, int index) {
@@ -410,45 +477,45 @@ WolComplexNode::performForwardImplication() {
   WolEvalFactory *evalFactory = WolMgr::getInstance().getEvalFactory();
   WolValueSptr retValue = nullptr;
   switch (_type) {
-    case WOL_SLICE_NODE:
+    case WolNodeType::WOL_SLICE_NODE:
       retValue = evalFactory->evalSplice(getChild(0)->getValue(), _highPrec, _lowPrec);
       break;
-    case WOL_AND_NODE:
+    case WolNodeType::WOL_AND_NODE:
       retValue = evalFactory->evalAnd(getChild(0)->getValue(), getChild(1)->getValue());
       break;
-    case WOL_BEQ_NODE:
+    case WolNodeType::WOL_BEQ_NODE:
       retValue = evalFactory->evalBeq(getChild(0)->getValue(), getChild(1)->getValue());
       break;
-    case WOL_ADD_NODE:
+    case WolNodeType::WOL_ADD_NODE:
       assert(0);
       break;
-    case WOL_MUL_NODE:
+    case WolNodeType::WOL_MUL_NODE:
       assert(0);
       break;
-    case WOL_ULT_NODE:
+    case WolNodeType::WOL_ULT_NODE:
       retValue = evalFactory->evalUlt(getChild(0)->getValue(), getChild(1)->getValue());
       break;
-    case WOL_SLL_NODE:
+    case WolNodeType::WOL_SLL_NODE:
       assert(0);
       break;
-    case WOL_SRL_NODE:
+    case WolNodeType::WOL_SRL_NODE:
       assert(0);
       break;
-    case WOL_UDIV_NODE:
+    case WolNodeType::WOL_UDIV_NODE:
       assert(0);
       break;
-    case WOL_UREM_NODE:
+    case WolNodeType::WOL_UREM_NODE:
       assert(0);
       break;
-    case WOL_CONCAT_NODE:
+    case WolNodeType::WOL_CONCAT_NODE:
       retValue = evalFactory->evalConcat(getChild(0)->getValue(), getChild(1)->getValue());
       break;
-    case WOL_BCOND_NODE:
+    case WolNodeType::WOL_BCOND_NODE:
       retValue = evalFactory->evalCond(getChild(0)->getValue(),
                                        getChild(1)->getValue(),
                                        getChild(2)->getValue());
       break;
-    case WOL_BV_NOT_NODE:
+    case WolNodeType::WOL_BV_NOT_NODE:
       retValue = ((getChild(0))->getValue())->getNotValue();
       break;
     default:
@@ -465,45 +532,45 @@ WolComplexNode::performForwardImplication(WolValueSptr operand1,
   WolEvalFactory *evalFactory = WolMgr::getInstance().getEvalFactory();
   WolValueSptr retValue = nullptr;
   switch (_type) {
-    case WOL_SLICE_NODE:
+    case WolNodeType::WOL_SLICE_NODE:
       retValue = evalFactory->evalSplice(operand1, _highPrec, _lowPrec);
       break;
-    case WOL_AND_NODE:
+    case WolNodeType::WOL_AND_NODE:
       retValue = evalFactory->evalAnd(operand1, operand2);
       break;
-    case WOL_BEQ_NODE:
+    case WolNodeType::WOL_BEQ_NODE:
       retValue = evalFactory->evalBeq(operand1, operand2);
       break;
-    case WOL_ADD_NODE:
+    case WolNodeType::WOL_ADD_NODE:
       assert(0);
       break;
-    case WOL_MUL_NODE:
+    case WolNodeType::WOL_MUL_NODE:
       assert(0);
       break;
-    case WOL_ULT_NODE:
+    case WolNodeType::WOL_ULT_NODE:
       retValue = evalFactory->evalUlt(operand1, operand2);
       break;
-    case WOL_SLL_NODE:
+    case WolNodeType::WOL_SLL_NODE:
       assert(0);
       break;
-    case WOL_SRL_NODE:
+    case WolNodeType::WOL_SRL_NODE:
       assert(0);
       break;
-    case WOL_UDIV_NODE:
+    case WolNodeType::WOL_UDIV_NODE:
       assert(0);
       break;
-    case WOL_UREM_NODE:
+    case WolNodeType::WOL_UREM_NODE:
       assert(0);
       break;
-    case WOL_CONCAT_NODE:
+    case WolNodeType::WOL_CONCAT_NODE:
       retValue = evalFactory->evalConcat(operand1, operand2);
       break;
-    case WOL_BCOND_NODE:
+    case WolNodeType::WOL_BCOND_NODE:
       retValue = evalFactory->evalCond(operand1,
                                        operand2,
                                        operand3);
       break;
-    case WOL_BV_NOT_NODE:
+    case WolNodeType::WOL_BV_NOT_NODE:
       retValue = operand1->getNotValue();
       break;
     default:
@@ -514,32 +581,58 @@ WolComplexNode::performForwardImplication(WolValueSptr operand1,
 
 int
 WolComplexNode::performImplication() {
+
+  DEBUG2_MSG << _name	<< " " << _id;
+  DEBUG2_MSG << "Initial Value " << _value->getStringRep();
   WolValueSptr prevValue = _value;
   WolEvalFactory *evalFactory = WolMgr::getInstance().getEvalFactory();
 
   WolValueSptr currBackValue = performBackwardImplication();
   if (!currBackValue) return -1;
+  DEBUG2_MSG << "Performed Backward Implication " << currBackValue->getStringRep();
 
   WolValueSptr currForValue = performForwardImplication();
   if(!currForValue) return -1;
+  DEBUG2_MSG << "Performed Forward Implication " << currForValue->getStringRep();
 
   WolValueSptr currValue = evalFactory->evalIntersection(currBackValue, currForValue);
   if (!currValue) return -1;
+  DEBUG2_MSG << "Performed Intersection of forward and backward values (currValue) " << currValue->getStringRep();
 
   WolValueSptr intersectionValue = evalFactory->evalIntersection(prevValue, currValue);
   if (!intersectionValue) return -1;
+  DEBUG2_MSG << "Performed Intersection prevValue and currValue " << intersectionValue->getStringRep();
+
 
   WolValueSptr diff1 = evalFactory->evalDiff(prevValue, currValue);
+  if (diff1) {
+	  DEBUG2_MSG << "Performed diff1 (prev - curr) " << diff1->getStringRep();
+  }
+  else {
+	  DEBUG2_MSG << "Performed diff1 (prev - curr) Empty";
+  }
+
   WolValueSptr diff2 = evalFactory->evalDiff(currValue, prevValue);
+  if(diff2) {
+	  DEBUG2_MSG << "Performed diff2 (curr - prev)" << diff2->getStringRep();
+  }
+  else {
+	  DEBUG2_MSG << "Performed diff2 (curr - prev) Empty";
+  }
 
-  if(!diff1 && !diff2)
+  if(!diff1 && !diff2) {
+	  DEBUG2_MSG << "Nothing Happened";
 	  return 0;
+  }
 
-  if (!diff1)
+  if (!diff1) {
+	  DEBUG2_MSG << "Enabling backward implication";
 	  return 1;
+  }
 
   if(!_svalue) _svalue = prevValue;
   _value = intersectionValue;
+  DEBUG2_MSG <<  "Enabling both forward and backward implication " << _value->getStringRep();
 
   return 2;
 }
