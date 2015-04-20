@@ -1,7 +1,7 @@
 #include "wolvaluefactoryimpl.h"
 #include "wolvalueimpl.h"
-#include "wolvalue.h"
-#include "common.h"
+#include "../wolvalue.h"
+#include "../common.h"
 
 namespace wolver
 {

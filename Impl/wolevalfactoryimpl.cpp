@@ -1,10 +1,10 @@
 #include "wolvalueimpl.h"
 #include "wolevalfactoryimpl.h"
 #include <boost/dynamic_bitset.hpp>
-#include "common.h"
-#include "wolutil.h"
-#include "wolmgr.h"
-#include "wollog.h"
+#include "../common.h"
+#include "../wolutil.h"
+#include "../wolmgr.h"
+#include "../wollog.h"
 #include <memory>
 #include <iostream>
 
@@ -1697,9 +1697,14 @@ WolEvalFactoryImpl::evalBoolAndBool (WolValueImplSptr val1,
 	WolBoolValueImplSptr bool_val1 = dBoolCast(val1);
 	WolBoolValueImplSptr bool_val2 = dBoolCast(val2);
 
+	DEBUG3_MSG << "BOOL " << val1->getStringRep()
+			   << " BOOL " << val2->getStringRep()
+			   << " AND";
+
 	bool result = bool_val1->_value & bool_val2->_value;
 
 	auto retValue = makeBoolImpl(result);
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return retValue;
 }
 
@@ -1710,19 +1715,27 @@ WolEvalFactoryImpl::evalConstAndConst (WolValueImplSptr val1,
 	WolConstValueImplSptr const_val1 = dConstCast(val1);
 	WolConstValueImplSptr const_val2 = dConstCast(val2);
 
+	DEBUG3_MSG << "CONST " << val1->getStringRep()
+			   << " CONST " << val2->getStringRep()
+			   << " AND";
+
 	boost::dynamic_bitset<> result = const_val1->_value & const_val2->_value;
 
 	auto retValue = makeConstImpl(result);
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return retValue;
 }
 
-//TODO: Graphical Representation of data structures for debugging purpose.
 WolValueImplSptr
 WolEvalFactoryImpl::evalConstAndRange (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
 
 	WolConstValueImplSptr const_val = dConstCast(val1);
 	WolRangeValueImplSptr range_val = dRangeCast(val2);
+
+	DEBUG3_MSG << "CONST " << val1->getStringRep()
+			   << " RANGE " << val2->getStringRep()
+			   << " AND";
 
 	int size = const_val->_value.size();
 	if (!range_val->isFull()){
@@ -1731,13 +1744,16 @@ WolEvalFactoryImpl::evalConstAndRange (WolValueImplSptr val1,
 		auto rangeSplit = range_val->split(position);
 		auto constSplit = const_val->split(position);
 
-		return evalAndInt(constSplit, rangeSplit);
+		auto result =  evalAndInt(constSplit, rangeSplit);
+		DEBUG3_MSG << "RESULT = " << result->getStringRep();
+		return result;
 	}
 	else {
 		// 110011 ---> xx00xx
 		dbitset val = const_val->_value;
 		if (val.none()) {
 			auto result = makeConstImpl(val);
+			DEBUG3_MSG << "RESULT = " << result->getStringRep();
 			return result ;
 		}
 		else {
@@ -1765,6 +1781,7 @@ WolEvalFactoryImpl::evalConstAndRange (WolValueImplSptr val1,
 				element = val[k];
 
 			}
+			DEBUG3_MSG << "RESULT = " << concatVal->getStringRep();
 			return concatVal;
 		}
 	}
@@ -1780,12 +1797,17 @@ WolEvalFactoryImpl::evalConstAndUnion (WolValueImplSptr val1,
 	WolConstValueImplSptr const_val = dConstCast(val1);
 	WolUnionValueImplSptr union_val = dUnionCast(val2);
 
+	DEBUG3_MSG << "CONST " << val1->getStringRep()
+			   << " UNION " << val2->getStringRep()
+			   << " AND";
+
 	WolUnionValueImplSptr result = makeUnionImpl ();
 	for (auto it = union_val->begin(); it != union_val->end(); it++) {
 		WolValueImplSptr andValue = evalAndInt(const_val, *it);
 		result->addValue(andValue);
 	}
 
+	DEBUG3_MSG << "RESULT = " << result->getStringRep();
 	return result;
 }
 
@@ -1795,6 +1817,10 @@ WolEvalFactoryImpl::evalConstAndConcat (WolValueImplSptr val1,
 
 	WolConstValueImplSptr const_val = dConstCast(val1);
 	WolConcatValueImplSptr concat_val = dConcatCast(val2);
+
+	DEBUG3_MSG << "CONST " << val1->getStringRep()
+			   << " CONCAT " << val2->getStringRep()
+			   << " AND";
 
 	WolConcatValueImplSptr result = makeConcatImpl();
 	dbitset value = const_val->_value;
@@ -1810,6 +1836,7 @@ WolEvalFactoryImpl::evalConstAndConcat (WolValueImplSptr val1,
 		offset -= prec;
 	}
 
+	DEBUG3_MSG << "RESULT = " << result->getStringRep();
 	return result;
 }
 
@@ -1824,11 +1851,17 @@ WolEvalFactoryImpl::evalRangeAndRange (WolValueImplSptr val1,
 	WolRangeValueImplSptr range1 = dRangeCast(val1);
 	WolRangeValueImplSptr range2 = dRangeCast(val2);
 
+	DEBUG3_MSG << "RANGE " << val1->getStringRep()
+			   << " RANGE " << val2->getStringRep()
+			   << " AND";
+
 	assert(range1->getPrecision() != 1 || range1->isFull());
 	assert(range2->getPrecision() != 2 || range2->isFull());
 
-	if (range1->isFull() && range2->isFull())
+	if (range1->isFull() && range2->isFull()) {
+		DEBUG3_MSG << "RESULT = " << val1->getStringRep();
 		return val1;
+	}
 
 	int position = min(range1->OptimalSplitPosition(),
 			range2->OptimalSplitPosition());
@@ -1837,7 +1870,9 @@ WolEvalFactoryImpl::evalRangeAndRange (WolValueImplSptr val1,
 	auto range1Split = range1->split(position);
 	auto range2Split = range2->split(position);
 
-	return evalAndInt(range1Split, range2Split);
+	auto result = evalAndInt(range1Split, range2Split);
+	DEBUG3_MSG << "RESULT = " << result->getStringRep();
+	return result;
 }
 
 WolValueImplSptr
@@ -1847,12 +1882,17 @@ WolEvalFactoryImpl::evalRangeAndUnion (WolValueImplSptr val1,
 	WolRangeValueImplSptr range_val = dRangeCast(val1);
 	WolUnionValueImplSptr union_val = dUnionCast(val2);
 
+	DEBUG3_MSG << "RANGE " << val1->getStringRep()
+			   << " UNION " << val2->getStringRep()
+			   << " AND";
+
 	WolUnionValueImplSptr result = makeUnionImpl ();
 	for (auto it = union_val->begin(); it != union_val->end(); it++) {
 		WolValueImplSptr andValue = evalAndInt(range_val, *it);
 		result->addValue(andValue);
 	}
 
+	DEBUG3_MSG << "RESULT = " << result->getStringRep();
 	return result;
 }
 
@@ -1863,13 +1903,17 @@ WolEvalFactoryImpl::evalRangeAndConcat (WolValueImplSptr val1,
 	WolRangeValueImplSptr range_val = dRangeCast(val1);
 	WolConcatValueImplSptr concat_val = dConcatCast(val2);
 
-	WolConcatValueImplSptr result = makeConcatImpl();
+	DEBUG3_MSG << "RANGE " << val1->getStringRep()
+               << " CONCAT " << val2->getStringRep()
+               << " AND";
 
 	assert(concat_val->begin() != concat_val->end());
 	int position = (*concat_val->begin())->getPrecision();
 	WolValueImplSptr rangeSplit = range_val->split(position);
 
-	return evalAndInt(rangeSplit, concat_val);
+	auto result = evalAndInt(rangeSplit, concat_val);
+	DEBUG3_MSG << "RESULT = " << result->getStringRep();
+	return result;
 
 }
 
@@ -1880,6 +1924,10 @@ WolEvalFactoryImpl::evalUnionAndUnion (WolValueImplSptr val1,
 	WolUnionValueImplSptr union1 = dUnionCast(val1);
 	WolUnionValueImplSptr union2 = dUnionCast(val2);
 
+	DEBUG3_MSG << "UNION " << val1->getStringRep()
+	           << " UNION " << val2->getStringRep()
+	           << " AND";
+
 	WolUnionValueImplSptr result = makeUnionImpl();
 	for (auto it1 = union1->begin(); it1 != union1->end(); it1++) {
 		for (auto it2 = union2->begin(); it2 != union2->end(); it2++) {
@@ -1888,6 +1936,7 @@ WolEvalFactoryImpl::evalUnionAndUnion (WolValueImplSptr val1,
 		}
 	}
 
+	DEBUG3_MSG << "RESULT = " << result->getStringRep();
 	return result;
 }
 
@@ -1897,6 +1946,11 @@ WolEvalFactoryImpl::evalUnionAndConcat (WolValueImplSptr val1,
 
 	WolUnionValueImplSptr union_val = dUnionCast(val1);
 	WolConcatValueImplSptr concat_val = dConcatCast(val2);
+
+	DEBUG3_MSG << "UNION " << val1->getStringRep()
+	           << " CONCAT " << val2->getStringRep()
+	           << " AND";
+
 	WolUnionValueImplSptr result = makeUnionImpl ();
 
 	for (auto it = union_val->begin(); it != union_val->end(); it++) {
@@ -1904,6 +1958,7 @@ WolEvalFactoryImpl::evalUnionAndConcat (WolValueImplSptr val1,
 		result->addValue(andValue);
 	}
 
+	DEBUG3_MSG << "RESULT = " << result->getStringRep();
 	return result;
 }
 
@@ -1916,18 +1971,25 @@ WolEvalFactoryImpl::evalConcatAndConcat (WolValueImplSptr val1,
 	assert(concat1->numValues() > 1);
 	assert(concat2->numValues() > 1);
 
+	DEBUG3_MSG << "CONCAT " << val1->getStringRep()
+	           << " CONCAT " << val2->getStringRep()
+	           << " AND";
+
 	int firstPrecision1 = concat1->getValue(0)->getPrecision();
 	int firstPrecision2 = concat2->getValue(0)->getPrecision();
 
 
 	if (firstPrecision1 < firstPrecision2) {
 		WolValueImplSptr split = concat2->split(firstPrecision1);
-		return evalAndInt(concat1, split);
+		auto result = evalAndInt(concat1, split);
+		DEBUG3_MSG << "RESULT = " << result->getStringRep();
+		return result;
 	}
 	else if (firstPrecision1 > firstPrecision2) {
 		WolValueImplSptr split = concat1->split(firstPrecision2);
-		return evalAndInt(split, concat2);
-
+		auto result = evalAndInt(split, concat2);
+		DEBUG3_MSG << "RESULT = " << result->getStringRep();
+		return result;
 	}
 	else {
 		WolValueImplSptr left1 = concat1->getValue(0);
@@ -1958,6 +2020,7 @@ WolEvalFactoryImpl::evalConcatAndConcat (WolValueImplSptr val1,
 		WolConcatValueImplSptr result = makeConcatImpl();
 		result->addValue(leftResult);
 		result->addValue(rightResult);
+		DEBUG3_MSG << "RESULT = " << result->getStringRep();
 		return result;
 	}
 
@@ -1973,9 +2036,14 @@ WolEvalFactoryImpl::evalBoolBeqBool (WolValueImplSptr val1,
 	WolBoolValueImplSptr bool_val1 = dBoolCast (val1);
 	WolBoolValueImplSptr bool_val2 = dBoolCast (val2);
 
+	DEBUG3_MSG << "BOOL " << val1->getStringRep()
+	           << " BOOL " << val2->getStringRep()
+	           << " BEQ";
+
 	bool result = (bool_val1->_value == bool_val2->_value);
 
 	WolConstValueImplSptr retValue = makeConstImpl(dbitset(1,result));
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return retValue;
 }
 
@@ -1986,9 +2054,14 @@ WolEvalFactoryImpl::evalConstBeqConst (WolValueImplSptr val1,
 	WolConstValueImplSptr const_val1 = dConstCast (val1);
 	WolConstValueImplSptr const_val2 = dConstCast (val2);
 
+	DEBUG3_MSG << "CONST " << val1->getStringRep()
+	           << " CONST " << val2->getStringRep()
+	           << " BEQ";
+
 	bool result = (const_val1->_value == const_val2->_value);
 
 	WolConstValueImplSptr retValue = makeConstImpl(dbitset(1,result));
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return retValue;
 }
 
@@ -1997,7 +2070,14 @@ WolEvalFactoryImpl::evalConstBeqConst (WolValueImplSptr val1,
 WolValueImplSptr
 WolEvalFactoryImpl::evalNonConstBeq (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "NCONST " << val1->getStringRep()
+		       << " NCONST " << val2->getStringRep()
+		       << " BEQ";
+
 	WolRangeValueImplSptr retValue = makeRangeImpl(1);
+
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return retValue;
 }
 
@@ -2006,14 +2086,17 @@ WolValueImplSptr
 WolEvalFactoryImpl::evalBoolAddBool (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
 
-	WolBoolValueImplSptr bool_val1 = dynamic_pointer_cast<WolBoolValueImpl> (
-			val1);
-	WolBoolValueImplSptr bool_val2 = dynamic_pointer_cast<WolBoolValueImpl> (
-			val2);
+	WolBoolValueImplSptr bool_val1 = dBoolCast(val1);
+	WolBoolValueImplSptr bool_val2 = dBoolCast(val2);
+
+	DEBUG3_MSG << "BOOL " << val1->getStringRep()
+			   << " BOOL " << val2->getStringRep()
+			   << " ADD";
 
 	bool result = (bool_val1->_value ^ bool_val2->_value);
 
 	WolBoolValueImplSptr retValue (new WolBoolValueImpl (result));
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return static_pointer_cast<WolValueImpl> (retValue);
 }
 
@@ -2021,21 +2104,26 @@ WolValueImplSptr
 WolEvalFactoryImpl::evalConstAddConst (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
 
-	WolConstValueImplSptr const_val1 = dConstCast (
-			val1);
-	WolConstValueImplSptr const_val2 = dConstCast (
-			val2);
+	WolConstValueImplSptr const_val1 = dConstCast(val1);
+	WolConstValueImplSptr const_val2 = dConstCast(val2);
+
+	DEBUG3_MSG << "CONST " << val1->getStringRep()
+			   << " CONST " << val2->getStringRep()
+			   << " ADD";
 
 	boost::dynamic_bitset<> result = bitSetAdd (const_val1->_value,
 			const_val2->_value);
 
 	WolConstValueImplSptr retValue (new WolConstValueImpl (result));
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return static_pointer_cast<WolValueImpl> (retValue);
 }
 
 WolValueImplSptr
 WolEvalFactoryImpl::evalConstAddRange (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONST ADD CONST NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
@@ -2043,6 +2131,8 @@ WolEvalFactoryImpl::evalConstAddRange (WolValueImplSptr val1,
 WolValueImplSptr
 WolEvalFactoryImpl::evalConstAddUnion (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONST ADD UNION  NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
@@ -2050,6 +2140,8 @@ WolEvalFactoryImpl::evalConstAddUnion (WolValueImplSptr val1,
 WolValueImplSptr
 WolEvalFactoryImpl::evalConstAddConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONST ADD CONCAT NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
@@ -2057,6 +2149,8 @@ WolEvalFactoryImpl::evalConstAddConcat (WolValueImplSptr val1,
 WolValueImplSptr
 WolEvalFactoryImpl::evalRangeAddRange (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "RANGE ADD RANGE NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
@@ -2064,6 +2158,8 @@ WolEvalFactoryImpl::evalRangeAddRange (WolValueImplSptr val1,
 WolValueImplSptr
 WolEvalFactoryImpl::evalRangeAddUnion (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "RANGE ADD UNION NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
@@ -2071,6 +2167,8 @@ WolEvalFactoryImpl::evalRangeAddUnion (WolValueImplSptr val1,
 WolValueImplSptr
 WolEvalFactoryImpl::evalRangeAddConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "RANGE ADD CONCAT NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
@@ -2078,6 +2176,8 @@ WolEvalFactoryImpl::evalRangeAddConcat (WolValueImplSptr val1,
 WolValueImplSptr
 WolEvalFactoryImpl::evalUnionAddUnion (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "UNION ADD UNION NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
@@ -2085,6 +2185,8 @@ WolEvalFactoryImpl::evalUnionAddUnion (WolValueImplSptr val1,
 WolValueImplSptr
 WolEvalFactoryImpl::evalUnionAddConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "UNION ADD CONCAT NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
@@ -2092,6 +2194,8 @@ WolEvalFactoryImpl::evalUnionAddConcat (WolValueImplSptr val1,
 WolValueImplSptr
 WolEvalFactoryImpl::evalConcatAddConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONCAT ADD CONCAT NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
@@ -2101,14 +2205,16 @@ WolValueImplSptr
 WolEvalFactoryImpl::evalBoolMulBool (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
 
-	WolBoolValueImplSptr bool_val1 = dynamic_pointer_cast<WolBoolValueImpl> (
-			val1);
-	WolBoolValueImplSptr bool_val2 = dynamic_pointer_cast<WolBoolValueImpl> (
-			val2);
+	WolBoolValueImplSptr bool_val1 = dBoolCast (val1);
+	WolBoolValueImplSptr bool_val2 = dBoolCast (val2);
 
+	DEBUG3_MSG << "BOOL " << val1->getStringRep()
+			   << " BOOL " << val2->getStringRep()
+			   << " MUL";
 	bool result = bool_val1->_value & bool_val2->_value;
 
 	WolBoolValueImplSptr retValue (new WolBoolValueImpl (result));
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return static_pointer_cast<WolValueImpl> (retValue);
 }
 
@@ -2116,21 +2222,26 @@ WolValueImplSptr
 WolEvalFactoryImpl::evalConstMulConst (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
 
-	WolConstValueImplSptr const_val1 = dConstCast (
-			val1);
-	WolConstValueImplSptr const_val2 = dConstCast (
-			val2);
+	WolConstValueImplSptr const_val1 = dConstCast (val1);
+	WolConstValueImplSptr const_val2 = dConstCast (val2);
+
+	DEBUG3_MSG << "CONST " << val1->getStringRep()
+			   << " CONST " << val2->getStringRep()
+			   << " MUL";
 
 	boost::dynamic_bitset<> result = bitSetMul (const_val1->_value,
 			const_val2->_value);
 
 	WolConstValueImplSptr retValue (new WolConstValueImpl (result));
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return static_pointer_cast<WolValueImpl> (retValue);
 }
 
 WolValueImplSptr
 WolEvalFactoryImpl::evalConstMulRange (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONST MUL RANGE NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
@@ -2138,6 +2249,8 @@ WolEvalFactoryImpl::evalConstMulRange (WolValueImplSptr val1,
 WolValueImplSptr
 WolEvalFactoryImpl::evalConstMulUnion (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONST MUL UNION NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
@@ -2145,6 +2258,8 @@ WolEvalFactoryImpl::evalConstMulUnion (WolValueImplSptr val1,
 WolValueImplSptr
 WolEvalFactoryImpl::evalConstMulConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONST MUL CONCAT NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
@@ -2152,6 +2267,8 @@ WolEvalFactoryImpl::evalConstMulConcat (WolValueImplSptr val1,
 WolValueImplSptr
 WolEvalFactoryImpl::evalRangeMulRange (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "RANGE MUL RANGE NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
@@ -2159,6 +2276,8 @@ WolEvalFactoryImpl::evalRangeMulRange (WolValueImplSptr val1,
 WolValueImplSptr
 WolEvalFactoryImpl::evalRangeMulUnion (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "RANGE MUL UNION NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
@@ -2166,6 +2285,8 @@ WolEvalFactoryImpl::evalRangeMulUnion (WolValueImplSptr val1,
 WolValueImplSptr
 WolEvalFactoryImpl::evalRangeMulConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "RANGE MUL CONCAT NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
@@ -2173,6 +2294,8 @@ WolEvalFactoryImpl::evalRangeMulConcat (WolValueImplSptr val1,
 WolValueImplSptr
 WolEvalFactoryImpl::evalUnionMulUnion (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "UNION MUL UNION NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
@@ -2180,6 +2303,8 @@ WolEvalFactoryImpl::evalUnionMulUnion (WolValueImplSptr val1,
 WolValueImplSptr
 WolEvalFactoryImpl::evalUnionMulConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "UNION MUL CONCAT NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
@@ -2187,6 +2312,8 @@ WolEvalFactoryImpl::evalUnionMulConcat (WolValueImplSptr val1,
 WolValueImplSptr
 WolEvalFactoryImpl::evalConcatMulConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONCAT MUL CONCAT NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
@@ -2196,14 +2323,16 @@ WolValueImplSptr
 WolEvalFactoryImpl::evalBoolSllBool (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
 
-	WolBoolValueImplSptr bool_val1 = dynamic_pointer_cast<WolBoolValueImpl> (
-			val1);
-	WolBoolValueImplSptr bool_val2 = dynamic_pointer_cast<WolBoolValueImpl> (
-			val2);
+	WolBoolValueImplSptr bool_val1 = dBoolCast (val1);
+	WolBoolValueImplSptr bool_val2 = dBoolCast (val2);
 
+	DEBUG3_MSG << "BOOL " << val1->getStringRep()
+			   << " BOOL " << val2->getStringRep()
+			   << " SLL";
 	bool result = (bool_val1->_value << bool_val2->_value);
 
 	WolBoolValueImplSptr retValue (new WolBoolValueImpl (result));
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return static_pointer_cast<WolValueImpl> (retValue);
 }
 
@@ -2211,15 +2340,18 @@ WolValueImplSptr
 WolEvalFactoryImpl::evalConstSllConst (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
 
-	WolConstValueImplSptr const_val1 = dConstCast (
-			val1);
-	WolConstValueImplSptr const_val2 = dConstCast (
-			val2);
+	WolConstValueImplSptr const_val1 = dConstCast (val1);
+	WolConstValueImplSptr const_val2 = dConstCast (val2);
+
+	DEBUG3_MSG << "CONST " << val1->getStringRep()
+			   << " CONST " << val2->getStringRep()
+			   << " SLL";
 
 	boost::dynamic_bitset<> result = const_val1->_value
 			<< const_val2->_value.to_ulong ();
 
 	WolConstValueImplSptr retValue (new WolConstValueImpl (result));
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return static_pointer_cast<WolValueImpl> (retValue);
 
 }
@@ -2227,90 +2359,120 @@ WolEvalFactoryImpl::evalConstSllConst (WolValueImplSptr val1,
 WolValueImplSptr
 WolEvalFactoryImpl::evalConstSllRange (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONST SLL CONST NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
 WolValueImplSptr
 WolEvalFactoryImpl::evalConstSllUnion (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONST SLL UNION NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
 WolValueImplSptr
 WolEvalFactoryImpl::evalConstSllConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONST SLL CONCAT NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
 WolValueImplSptr
 WolEvalFactoryImpl::evalRangeSllRange (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "RANGE SLL RANGE NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
 WolValueImplSptr
 WolEvalFactoryImpl::evalRangeSllUnion (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "RANGE SLL UNION NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
 WolValueImplSptr
 WolEvalFactoryImpl::evalRangeSllConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "RANGE SLL CONCAT NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
 WolValueImplSptr
 WolEvalFactoryImpl::evalUnionSllUnion (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "UNION SLL UNION NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
 WolValueImplSptr
 WolEvalFactoryImpl::evalUnionSllConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "UNION SLL CONCAT NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
 WolValueImplSptr
 WolEvalFactoryImpl::evalConcatSllConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONCAT SLL CONCAT NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
 WolValueImplSptr
 WolEvalFactoryImpl::evalRangeSllConst (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "RANGE SLL CONST NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
 WolValueImplSptr
 WolEvalFactoryImpl::evalUnionSllConst (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "UNION SLL CONST NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
 WolValueImplSptr
 WolEvalFactoryImpl::evalConcatSllConst (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONCAT SLL CONST NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
 WolValueImplSptr
 WolEvalFactoryImpl::evalUnionSllRange (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "UNION SLL RANGE NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
 WolValueImplSptr
 WolEvalFactoryImpl::evalConcatSllRange (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONCAT SLL RANGE NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
 WolValueImplSptr
 WolEvalFactoryImpl::evalConcatSllUnion (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONCAT SLL UNION NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
@@ -2320,14 +2482,16 @@ WolValueImplSptr
 WolEvalFactoryImpl::evalBoolSrlBool (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
 
-	WolBoolValueImplSptr bool_val1 = dynamic_pointer_cast<WolBoolValueImpl> (
-			val1);
-	WolBoolValueImplSptr bool_val2 = dynamic_pointer_cast<WolBoolValueImpl> (
-			val2);
+	WolBoolValueImplSptr bool_val1 = dBoolCast (val1);
+	WolBoolValueImplSptr bool_val2 = dBoolCast (val2);
 
+	DEBUG3_MSG << "BOOL " << val1->getStringRep()
+			   << " BOOL " << val2->getStringRep()
+			   << " SRL";
 	bool result = bool_val1->_value >> bool_val2->_value;
 
 	WolBoolValueImplSptr retValue (new WolBoolValueImpl (result));
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return static_pointer_cast<WolValueImpl> (retValue);
 }
 
@@ -2335,105 +2499,151 @@ WolValueImplSptr
 WolEvalFactoryImpl::evalConstSrlConst (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
 
-	WolConstValueImplSptr const_val1 = dConstCast (
-			val1);
-	WolConstValueImplSptr const_val2 = dConstCast (
-			val2);
+	WolConstValueImplSptr const_val1 = dConstCast (val1);
+	WolConstValueImplSptr const_val2 = dConstCast (val2);
+
+	DEBUG3_MSG << "CONST " << val1->getStringRep()
+			   << " CONST " << val2->getStringRep()
+			   << " SRL";
 
 	boost::dynamic_bitset<> result = const_val1->_value
 			>> const_val2->_value.to_ulong ();
 
 	WolConstValueImplSptr retValue (new WolConstValueImpl (result));
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return static_pointer_cast<WolValueImpl> (retValue);
 }
 
 WolValueImplSptr
 WolEvalFactoryImpl::evalConstSrlRange (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONST SRL RANGE NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalConstSrlUnion (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONST SRL UNION NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalConstSrlConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONST SRL CONCAT NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalRangeSrlRange (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "RANGE SRL RANGE NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalRangeSrlUnion (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "RANGE SRL UNION NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalRangeSrlConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "RANGE SRL CONCAT NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalUnionSrlUnion (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "UNION SRL UNION NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalUnionSrlConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "UNION SRL CONCAT NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalConcatSrlConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONCAT SRL CONCAT NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
 WolValueImplSptr
 WolEvalFactoryImpl::evalRangeSrlConst (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "RANGE SRL CONST NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalUnionSrlConst (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "UNION SRL CONST NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalConcatSrlConst (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONCAT SRL CONST NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalUnionSrlRange (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "UNION SRL RANGE NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalConcatSrlRange (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONCAT SRL RANGE NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalConcatSrlUnion (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONCAT SRL UNION NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
@@ -2442,16 +2652,19 @@ WolEvalFactoryImpl::evalConcatSrlUnion (WolValueImplSptr val1,
 WolValueImplSptr
 WolEvalFactoryImpl::evalBoolUdivBool (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
-	WolBoolValueImplSptr bool_val1 = dynamic_pointer_cast<WolBoolValueImpl> (
-			val1);
-	WolBoolValueImplSptr bool_val2 = dynamic_pointer_cast<WolBoolValueImpl> (
-			val2);
+	WolBoolValueImplSptr bool_val1 = dBoolCast (val1);
+	WolBoolValueImplSptr bool_val2 = dBoolCast (val2);
+
+	DEBUG3_MSG << "BOOL " << val1->getStringRep()
+			   << " BOOL " << val2->getStringRep()
+			   << " UDIV";
 
 	if (bool_val2->_value == 0)
 		assert(0);
 	bool result = bool_val1->_value;
 
 	WolBoolValueImplSptr retValue (new WolBoolValueImpl (result));
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return static_pointer_cast<WolValueImpl> (retValue);
 }
 
@@ -2460,15 +2673,18 @@ WolEvalFactoryImpl::evalBoolUdivBool (WolValueImplSptr val1,
 WolValueImplSptr
 WolEvalFactoryImpl::evalConstUdivConst (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
-	WolConstValueImplSptr const_val1 = dConstCast (
-			val1);
-	WolConstValueImplSptr const_val2 = dConstCast (
-			val2);
+	WolConstValueImplSptr const_val1 = dConstCast (val1);
+	WolConstValueImplSptr const_val2 = dConstCast (val2);
+
+	DEBUG3_MSG << "CONST " << val1->getStringRep()
+			   << " CONST " << val2->getStringRep()
+			   << " UDIV";
 
 	boost::dynamic_bitset<> result = bitSetDiv (const_val1->_value,
 			const_val2->_value, false);
 
 	WolConstValueImplSptr retValue (new WolConstValueImpl (result));
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return static_pointer_cast<WolValueImpl> (retValue);
 
 }
@@ -2476,90 +2692,134 @@ WolEvalFactoryImpl::evalConstUdivConst (WolValueImplSptr val1,
 WolValueImplSptr
 WolEvalFactoryImpl::evalConstUdivRange (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONST UDIV RANGE NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalConstUdivUnion (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONST UDIV UNION NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalConstUdivConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONST UDIV CONCAT NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalRangeUdivRange (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "RANGE UDIV RANGE NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalRangeUdivUnion (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "RANGE UDIV UNION NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalRangeUdivConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "RANGE UDIV CONCAT NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalUnionUdivUnion (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "UNION UDIV UNION NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalUnionUdivConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "UNION UDIV CONCAT NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalConcatUdivConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONCAT UDIV CONCAT NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalRangeUdivConst (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "RANGE UDIV CONST NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalUnionUdivConst (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "UNION UDIV CONST NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalConcatUdivConst (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONCAT UDIV CONST NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalUnionUdivRange (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "UNION UDIV RANGE NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalConcatUdivRange (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONCAT UDIV RANGE NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalConcatUdivUnion (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONCAT UDIV UNION NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
@@ -2569,119 +2829,170 @@ WolValueImplSptr
 WolEvalFactoryImpl::evalBoolUremBool (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
 
-	WolBoolValueImplSptr bool_val2 = dynamic_pointer_cast<WolBoolValueImpl> (
-			val2);
+	WolBoolValueImplSptr bool_val2 = dBoolCast (val2);
+
+	DEBUG3_MSG << "BOOL " << val1->getStringRep()
+			   << " BOOL " << val2->getStringRep()
+			   << " UREM";
 
 	if (bool_val2->_value == 0)
 		assert(0);
 	bool result = false;
 
 	WolBoolValueImplSptr retValue (new WolBoolValueImpl (result));
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return static_pointer_cast<WolValueImpl> (retValue);
 }
 
 WolValueImplSptr
 WolEvalFactoryImpl::evalConstUremConst (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
-	WolConstValueImplSptr const_val1 = dConstCast (
-			val1);
-	WolConstValueImplSptr const_val2 = dConstCast (
-			val2);
+	WolConstValueImplSptr const_val1 = dConstCast (val1);
+	WolConstValueImplSptr const_val2 = dConstCast (val2);
+
+	DEBUG3_MSG << "CONST " << val1->getStringRep()
+			   << " CONST " << val2->getStringRep()
+			   << " UREM";
 
 	boost::dynamic_bitset<> result = bitSetDiv (const_val1->_value,
 			const_val2->_value, true);
 
 	WolConstValueImplSptr retValue (new WolConstValueImpl (result));
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return static_pointer_cast<WolValueImpl> (retValue);
 }
 
 WolValueImplSptr
 WolEvalFactoryImpl::evalConstUremRange (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONST UREM RANGE NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalConstUremUnion (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONST UREM UNION NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalConstUremConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONST UREM CONCAT NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalRangeUremRange (WolValueImplSptr val1,
-		WolValueImplSptr val2) {
+										WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "RANGE UREM RANGE NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalRangeUremUnion (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "RANGE UREM UNION NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalRangeUremConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "RANGE UREM CONCAT NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalUnionUremUnion (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "UNION UREM UNION NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalUnionUremConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "UNION UREM CONCAT NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalConcatUremConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONCAT UREM CONCAT NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalRangeUremConst (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "RANGE UREM CONST NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalUnionUremConst (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "UNION UREM CONST NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalConcatUremConst (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONCAT UREM CONST NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalUnionUremRange (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "UNION UREM RANGE NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalConcatUremRange (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONCAT UREM RANGE NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
+
 WolValueImplSptr
 WolEvalFactoryImpl::evalConcatUremUnion (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
+
+	DEBUG3_MSG << "CONCAT UREM UNION NOT IMPLEMENTED";
 	assert(0);
 	return nullptr;
 }
@@ -2694,11 +3005,16 @@ WolEvalFactoryImpl::evalBoolConcatBool (WolValueImplSptr val1,
 	WolBoolValueImplSptr bool_val1 = dBoolCast (val1);
 	WolBoolValueImplSptr bool_val2 = dBoolCast (val2);
 
+	DEBUG3_MSG << "BOOL " << val1->getStringRep()
+			   << " BOOL " << val2->getStringRep()
+			   << " CONCAT";
+
 	boost::dynamic_bitset<> result (2);
 	result[0] = bool_val1->_value;
 	result[1] = bool_val2->_value;
 
 	WolConstValueImplSptr retValue (new WolConstValueImpl (result));
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return static_pointer_cast<WolValueImpl> (retValue);
 }
 
@@ -2707,6 +3023,10 @@ WolEvalFactoryImpl::evalConstConcatConst (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
 	WolConstValueImplSptr const_val1 = dConstCast (val1);
 	WolConstValueImplSptr const_val2 = dConstCast (val2);
+
+	DEBUG3_MSG << "CONST " << val1->getStringRep()
+			   << " CONST " << val2->getStringRep()
+			   << " CONCAT";
 
 	int length1 = const_val1->_value.size ();
 	int length2 = const_val2->_value.size ();
@@ -2725,6 +3045,7 @@ WolEvalFactoryImpl::evalConstConcatConst (WolValueImplSptr val1,
 	}
 
 	WolConstValueImplSptr retValue (new WolConstValueImpl (result));
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return static_pointer_cast<WolValueImpl> (retValue);
 }
 
@@ -2732,9 +3053,15 @@ WolValueImplSptr
 WolEvalFactoryImpl::evalNonConstConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
 
+	DEBUG3_MSG << "NCONST " << val1->getStringRep()
+			   << " NCONST " << val2->getStringRep()
+			   << " CONCAT";
+
 	WolConcatValueImplSptr retValue = makeConcatImpl();
 	retValue->addValue(val1);
 	retValue->addValue(val2);
+
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return retValue;
 }
 
@@ -2746,10 +3073,19 @@ WolEvalFactoryImpl::evalBoolUnionBool (WolValueImplSptr val1,
 	WolBoolValueImplSptr bool_val1 = dBoolCast (val1);
 	WolBoolValueImplSptr bool_val2 = dBoolCast (val2);
 
-	if (bool_val1->_value == bool_val2->_value)
+	DEBUG3_MSG << "BOOL " << val1->getStringRep()
+			   << " BOOL " << val2->getStringRep()
+			   << " UNION";
+
+	if (bool_val1->_value == bool_val2->_value) {
+		DEBUG3_MSG << "RESULT = " << bool_val1->getStringRep();
 		return bool_val1;
-	else
-		return makeRangeImpl(1);
+	}
+	else {
+		auto retValue = makeRangeImpl(1);
+		DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
+		return retValue;
+	}
 
 	assert(0);
 	return nullptr;
@@ -2761,13 +3097,20 @@ WolEvalFactoryImpl::evalConstUnionConst (WolValueImplSptr val1,
 	WolConstValueImplSptr const_val1 = dConstCast (val1);
 	WolConstValueImplSptr const_val2 = dConstCast (val2);
 
+	DEBUG3_MSG << "CONST " << val1->getStringRep()
+			   << " CONST " << val2->getStringRep()
+			   << " UNION";
+
 	//TODO: Check to see if range can be formed
-	if (const_val1->containsValue(const_val2->getLowValue()))
+	if (const_val1->containsValue(const_val2->getLowValue())) {
+		DEBUG3_MSG << "RESULT = " << const_val1->getStringRep();
 		return const_val1;
+	}
 	else {
 		WolUnionValueImplSptr retValue = makeUnionImpl();
 		retValue->addValue(val1);
 		retValue->addValue(val2);
+		DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 		return retValue;
 	}
 
@@ -2782,12 +3125,19 @@ WolEvalFactoryImpl::evalConstUnionRange (WolValueImplSptr val1,
 	WolConstValueImplSptr const_val = dConstCast(val1);
 	WolRangeValueImplSptr range_val = dRangeCast(val2);
 
-	if (range_val->containsValue(const_val->getLowValue()))
+	DEBUG3_MSG << "CONST " << val1->getStringRep()
+			   << " RANGE " << val2->getStringRep()
+			   << " UNION";
+
+	if (range_val->containsValue(const_val->getLowValue())) {
+		DEBUG3_MSG << "RESULT = " << val2->getStringRep();
 		return val2;
+	}
 	else {
 		WolUnionValueImplSptr retValue = makeUnionImpl();
 		retValue->addValue(val1);
 		retValue->addValue(val2);
+		DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 		return retValue;
 	}
 
@@ -2801,15 +3151,22 @@ WolEvalFactoryImpl::evalConstUnionUnion (WolValueImplSptr val1,
 	WolConstValueImplSptr const_val = dConstCast(val1);
 	WolUnionValueImplSptr union_val = dUnionCast(val2);
 
+	DEBUG3_MSG << "CONST " << val1->getStringRep()
+			   << " UNION " << val2->getStringRep()
+			   << " UNION";
+
 	//TODO : check to see if const is at the boundaries of range elements.
 	for (auto i : union_val->_values) {
-		if(i->containsValue(const_val->getLowValue()))
+		if(i->containsValue(const_val->getLowValue())) {
+			DEBUG3_MSG << "RESULT = " << val2->getStringRep();
 			return val2;
+		}
 	}
 
 	WolUnionValueImplSptr retValue = makeUnionImpl();
 	retValue->addValue(val1);
 	retValue->addValue(val2);
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return retValue;
 }
 
@@ -2818,12 +3175,20 @@ WolEvalFactoryImpl::evalConstUnionConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
 
 	WolConstValueImplSptr const_val = dConstCast(val1);
-	if (val2->containsValue(const_val->getLowValue()))
+
+	DEBUG3_MSG << "CONST " << val1->getStringRep()
+			   << " CONCAT " << val2->getStringRep()
+			   << " UNION";
+
+	if (val2->containsValue(const_val->getLowValue())) {
+		DEBUG3_MSG << "RESULT = " << val2->getStringRep();
 		return val2;
+	}
 
 	WolUnionValueImplSptr retValue = makeUnionImpl();
 	retValue->addValue(val1);
 	retValue->addValue(val2);
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return retValue;
 }
 
@@ -2833,6 +3198,10 @@ WolEvalFactoryImpl::evalRangeUnionRange (WolValueImplSptr val1,
 
 	WolRangeValueImplSptr range_val1 = dRangeCast(val1);
 	WolRangeValueImplSptr range_val2 = dRangeCast(val2);
+
+	DEBUG3_MSG << "RANGE " << val1->getStringRep()
+			   << " RANGE " << val2->getStringRep()
+			   << " UNION";
 
 	bool merge = false;
 
@@ -2847,12 +3216,14 @@ WolEvalFactoryImpl::evalRangeUnionRange (WolValueImplSptr val1,
 				range_val2->getLowValue()),
 				std::max(range_val1->getHighValue(),
 						range_val2->getHighValue()));
+		DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 		return retValue;
 	}
 	else {
 		WolUnionValueImplSptr retValue = makeUnionImpl();
 		retValue->addValue(val1);
 		retValue->addValue(val2);
+		DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 		return retValue;
 
 	}
@@ -2868,14 +3239,20 @@ WolEvalFactoryImpl::evalRangeUnionUnion (WolValueImplSptr val1,
 	WolRangeValueImplSptr range_val = dRangeCast(val1);
 	WolUnionValueImplSptr union_val = dUnionCast(val2);
 
+	DEBUG3_MSG << "RANGE " << val1->getStringRep()
+			   << " UNION " << val2->getStringRep()
+			   << " UNION";
 
 	if (range_val->containsValue(union_val->getLowValue()) &&
-			range_val->containsValue(union_val->getHighValue()))
+			range_val->containsValue(union_val->getHighValue())) {
+		DEBUG3_MSG << "RESULT = " << val1->getStringRep();
 		return val1;
+	}
 	else {
 		WolUnionValueImplSptr retValue = makeUnionImpl();
 		retValue->addValue(val1);
 		retValue->addValue(val2);
+		DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 		return retValue;
 	}
 
@@ -2887,9 +3264,15 @@ WolValueImplSptr
 WolEvalFactoryImpl::evalRangeUnionConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
 
+	DEBUG3_MSG << "RANGE " << val1->getStringRep()
+			   << " CONCAT " << val2->getStringRep()
+			   << " UNION";
+
 	WolUnionValueImplSptr retValue = makeUnionImpl();
 	retValue->addValue(val1);
 	retValue->addValue(val2);
+
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return retValue;
 }
 
@@ -2901,6 +3284,10 @@ WolEvalFactoryImpl::evalUnionUnionUnion (WolValueImplSptr val1,
 	WolUnionValueImplSptr union_val1 = dUnionCast(val1);
 	WolUnionValueImplSptr union_val2 = dUnionCast(val2);
 
+	DEBUG3_MSG << "UNION " << val1->getStringRep()
+			   << " UNION " << val2->getStringRep()
+			   << " UNION";
+
 	WolUnionValueImplSptr retValue = makeUnionImpl();
 	for (auto i : union_val1->_values) {
 		retValue->addValue(i);
@@ -2909,6 +3296,7 @@ WolEvalFactoryImpl::evalUnionUnionUnion (WolValueImplSptr val1,
 		retValue->addValue(i);
 	}
 
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return retValue;
 }
 
@@ -2919,11 +3307,16 @@ WolEvalFactoryImpl::evalUnionUnionConcat (WolValueImplSptr val1,
 	WolUnionValueImplSptr union_val = dUnionCast(val1);
 	WolConcatValueImplSptr concat_val = dConcatCast(val2);
 
+	DEBUG3_MSG << "UNION " << val1->getStringRep()
+			   << " CONCAT " << val2->getStringRep()
+			   << " UNION";
+
 	WolUnionValueImplSptr retValue = makeUnionImpl();
 	for (auto i : union_val->_values)
 		retValue->addValue(i);
 	retValue->addValue(val2);
 
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return retValue;
 }
 
@@ -2931,9 +3324,15 @@ WolValueImplSptr
 WolEvalFactoryImpl::evalConcatUnionConcat (WolValueImplSptr val1,
 		WolValueImplSptr val2) {
 
+	DEBUG3_MSG << "CONCAT " << val1->getStringRep()
+			   << " CONCAT " << val2->getStringRep()
+			   << " UNION";
+
 	WolUnionValueImplSptr retValue = makeUnionImpl();
 	retValue->addValue(val1);
 	retValue->addValue(val2);
+
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return retValue;
 }
 
@@ -3609,17 +4008,28 @@ WolEvalFactoryImpl::evalBackBoolAndBool(WolValueImplSptr op_val,
 	WolBoolValueImplSptr op_bool_val = dBoolCast(op_val);
 	WolBoolValueImplSptr operand_bool_val = dBoolCast(operand_val);
 
+	DEBUG3_MSG << "BOOL OP = " << op_val->getStringRep()
+			   << " BOOL OPERAND = " << operand_val->getStringRep()
+	           << " BAND";
+
 	if (op_bool_val->_value == 1 && operand_bool_val == 0) {
+		DEBUG3_MSG << "RESULT = EMPTY";
 		return nullptr;
 	}
 	else if (op_bool_val->_value == 1 && operand_bool_val->_value == 1) {
-		return makeBoolImpl(true);
+		auto result =  makeBoolImpl(true);
+		DEBUG3_MSG << "RESULT = " << result->getStringRep();
+		return result;
 	}
 	else if (op_bool_val->_value == 0 && operand_bool_val->_value == 1) {
-		return makeBoolImpl(false);
+		auto result = makeBoolImpl(false);
+		DEBUG3_MSG << "RESULT = " << result->getStringRep();
+		return result;
 	}
 	else {
-		return makeRangeImpl(1);
+		auto result = makeRangeImpl(1);
+		DEBUG3_MSG << "RESULT = " << result->getStringRep();
+		return result;
 	}
 
 	assert(0);
@@ -3641,11 +4051,24 @@ WolEvalFactoryImpl::evalBackConstAndConst(WolValueImplSptr op_val,
 	WolConstValueImplSptr op_const_val = dConstCast(op_val);
 	WolConstValueImplSptr operand_const_val = dConstCast(operand_val);
 
-	if (((op_const_val->_value) & (~operand_const_val->_value)) != dbitset(op_val->getPrecision(), 0))
-		return nullptr;
 
-	if (((~op_const_val->_value) & (~operand_const_val->_value)) == dbitset(op_val->getPrecision(), 0))
+	DEBUG3_MSG << "CONST OP = " << op_val->getStringRep()
+			   << " CONST OPERAND = " << operand_val->getStringRep()
+	           << " BAND";
+
+	if (((op_const_val->_value) &
+			(~operand_const_val->_value)) != dbitset(op_val->getPrecision(), 0)) {
+
+		DEBUG3_MSG << "RESULT = EMPTY";
+		return nullptr;
+	}
+
+	if (((~op_const_val->_value) &
+			(~operand_const_val->_value)) == dbitset(op_val->getPrecision(), 0)) {
+
+		DEBUG3_MSG << "RESULT = " << op_val->getStringRep();
 		return op_val;
+	}
 
 	WolConcatValueImplSptr retValue = makeConcatImpl();
 	dbitset temp;
@@ -3681,6 +4104,7 @@ WolEvalFactoryImpl::evalBackConstAndConst(WolValueImplSptr op_val,
 	if (retValue->numValues() == 1)
 		return retValue->getValue(0);
 
+	DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
 	return retValue;
 }
 
@@ -3691,6 +4115,10 @@ WolEvalFactoryImpl::evalBackConstAndRange(WolValueImplSptr op_val,
 	WolConstValueImplSptr const_val = dConstCast(op_val);
 	WolRangeValueImplSptr range_val = dRangeCast(operand_val);
 
+	DEBUG3_MSG << "CONST OP = " << op_val->getStringRep()
+			   << " RANGE OPERAND = " << operand_val->getStringRep()
+	           << " BAND";
+
 	int size = const_val->_value.size();
 	if (!range_val->isFull()){
 		int position = range_val->OptimalSplitPosition();
@@ -3698,16 +4126,20 @@ WolEvalFactoryImpl::evalBackConstAndRange(WolValueImplSptr op_val,
 		auto rangeSplit = range_val->split(position);
 		auto constSplit = const_val->split(position);
 
-		return evalAndBInt(constSplit, rangeSplit);
+		auto retValue = evalAndBInt(constSplit, rangeSplit);
+		DEBUG3_MSG << "RESULT = " << retValue->getStringRep();
+		return retValue;
 	}
 	else {
 		// 110011 ---> 11XX11
 		dbitset val = const_val->_value;
 		if (val.none()) {
 			auto result = makeRangeImpl(size);
+			DEBUG3_MSG << "RESULT = " << result->getStringRep();
 			return result ;
 		}
 		else if ((~val).none()) {
+			DEBUG3_MSG << "RESULT = " << const_val->getStringRep();
 			return const_val;
 		}
 		else {
@@ -3735,10 +4167,14 @@ WolEvalFactoryImpl::evalBackConstAndRange(WolValueImplSptr op_val,
 				   element = val[k];
 
 			}
-			if (concatVal->numValues() == 1)
+			if (concatVal->numValues() == 1) {
+				DEBUG3_MSG << "RESULT = " << concatVal->getValue(0)->getStringRep();
 				return concatVal->getValue(0);
-			else
+			}
+			else {
+				DEBUG3_MSG << "RESULT = " << concatVal->getStringRep();
 				return concatVal;
+			}
 		}
 	}
 
@@ -3752,14 +4188,22 @@ WolEvalFactoryImpl::evalBackConstAndUnion(WolValueImplSptr op_val,
 	WolConstValueImplSptr const_val = dConstCast(op_val);
 	WolUnionValueImplSptr union_val = dUnionCast(operand_val);
 
+	DEBUG3_MSG << "CONST OP = " << op_val->getStringRep()
+			   << " UNION OPERAND = " << operand_val->getStringRep()
+	           << " BAND";
+
 	WolUnionValueImplSptr result = makeUnionImpl ();
 	for (auto it = union_val->begin(); it != union_val->end(); it++) {
 		WolValueImplSptr andValue = evalAndBInt(const_val, *it);
 		if (andValue) result->addValue(andValue);
 	}
 
-	if (result->numValues() == 0)
+	if (result->numValues() == 0) {
+		DEBUG3_MSG << "RESULT = EMPTY";
 		return nullptr;
+	}
+
+	DEBUG3_MSG << "RESULT = " << result->getStringRep();
 	return result;
 }
 
@@ -3768,6 +4212,10 @@ WolEvalFactoryImpl::evalBackConstAndConcat(WolValueImplSptr op_val,
 		WolValueImplSptr operand_val){
 	WolConstValueImplSptr const_val = dConstCast(op_val);
 	WolConcatValueImplSptr concat_val = dConcatCast(operand_val);
+
+	DEBUG3_MSG << "CONST OP = " << op_val->getStringRep()
+			   << " CONCAT OPERAND = " << operand_val->getStringRep()
+	           << " BAND";
 
 	WolConcatValueImplSptr result = makeConcatImpl();
 	dbitset value = const_val->_value;
@@ -3783,7 +4231,12 @@ WolEvalFactoryImpl::evalBackConstAndConcat(WolValueImplSptr op_val,
 		offset -= prec;
 	}
 
-	if (result->numValues() == 0) return nullptr;
+	if (result->numValues() == 0) {
+		DEBUG3_MSG << "RESULT = EMPTY";
+		return nullptr;
+	}
+
+	DEBUG3_MSG << "RESULT = " << result->getStringRep();
 	return result;
 }
 
@@ -3794,6 +4247,10 @@ WolEvalFactoryImpl::evalBackRangeAndRange(WolValueImplSptr op_val,
 	WolRangeValueImplSptr range1 = dRangeCast(op_val);
 	WolRangeValueImplSptr range2 = dRangeCast(operand_val);
 
+	DEBUG3_MSG << "RANGE OP = " << op_val->getStringRep()
+			   << " RANGE OPERAND = " << operand_val->getStringRep()
+		       << " BAND";
+
 	int position = min(range1->OptimalSplitPosition(),
 			range2->OptimalSplitPosition());
 	if (position == 0) position = range1->getPrecision()/2;
@@ -3801,7 +4258,9 @@ WolEvalFactoryImpl::evalBackRangeAndRange(WolValueImplSptr op_val,
 	auto range1Split = range1->split(position);
 	auto range2Split = range2->split(position);
 
-	return evalAndBInt(range1Split, range2Split);
+	auto result = evalAndBInt(range1Split, range2Split);
+	DEBUG3_MSG << "RESULT = " << result->getStringRep();
+	return result;
 }
 
 WolValueImplSptr
@@ -3811,13 +4270,22 @@ WolEvalFactoryImpl::evalBackRangeAndUnion(WolValueImplSptr op_val,
 	WolRangeValueImplSptr range_val = dRangeCast(op_val);
 	WolUnionValueImplSptr union_val = dUnionCast(operand_val);
 
+	DEBUG3_MSG << "RANGE OP = " << op_val->getStringRep()
+			   << " UNION OPERAND = " << operand_val->getStringRep()
+		       << " BAND";
+
 	WolUnionValueImplSptr result = makeUnionImpl ();
 	for (auto it = union_val->begin(); it != union_val->end(); it++) {
 		WolValueImplSptr andValue = evalAndBInt(range_val, *it);
 		if (andValue) result->addValue(andValue);
 	}
 
-	if (result->numValues() == 0) return nullptr;
+	if (result->numValues() == 0) {
+		DEBUG3_MSG << "RESULT = EMPTY";
+		return nullptr;
+	}
+
+	DEBUG3_MSG << "RESULT = " << result->getStringRep();
 	return result;
 }
 
@@ -3828,13 +4296,17 @@ WolEvalFactoryImpl::evalBackRangeAndConcat(WolValueImplSptr op_val,
 	WolRangeValueImplSptr range_val = dRangeCast(op_val);
 	WolConcatValueImplSptr concat_val = dConcatCast(operand_val);
 
-	WolConcatValueImplSptr result = makeConcatImpl();
+	DEBUG3_MSG << "RANGE OP = " << op_val->getStringRep()
+			   << " CONCAT OPERAND = " << operand_val->getStringRep()
+		       << " BAND";
 
 	assert(concat_val->begin() != concat_val->end());
 	int position = (*concat_val->begin())->getPrecision();
 	WolValueImplSptr rangeSplit = range_val->split(position);
 
-	return evalAndBInt(rangeSplit, concat_val);
+	auto result = evalAndBInt(rangeSplit, concat_val);
+	DEBUG3_MSG << "RESULT = " << result->getStringRep();
+	return result;
 }
 
 WolValueImplSptr
@@ -3844,6 +4316,10 @@ WolEvalFactoryImpl::evalBackUnionAndUnion(WolValueImplSptr op_val,
 	WolUnionValueImplSptr union1 = dUnionCast(op_val);
 	WolUnionValueImplSptr union2 = dUnionCast(operand_val);
 
+	DEBUG3_MSG << "UNION OP = " << op_val->getStringRep()
+			   << " UNION OPERAND = " << operand_val->getStringRep()
+		       << " BAND";
+
 	WolUnionValueImplSptr result = makeUnionImpl();
 	for (auto it1 = union1->begin(); it1 != union1->end(); it1++) {
 		for (auto it2 = union2->begin(); it2 != union2->end(); it2++) {
@@ -3852,7 +4328,12 @@ WolEvalFactoryImpl::evalBackUnionAndUnion(WolValueImplSptr op_val,
 		}
 	}
 
-	if (result->numValues() == 0) return nullptr;
+	if (result->numValues() == 0) {
+		DEBUG3_MSG << "RESULT = EMPTY";
+		return nullptr;
+	}
+
+	DEBUG3_MSG << "RESULT = " << result->getStringRep();
 	return result;
 }
 
@@ -3862,6 +4343,11 @@ WolEvalFactoryImpl::evalBackUnionAndConcat(WolValueImplSptr op_val,
 
 	WolUnionValueImplSptr union_val = dUnionCast(op_val);
 	WolConcatValueImplSptr concat_val = dConcatCast(operand_val);
+
+	DEBUG3_MSG << "UNION OP = " << op_val->getStringRep()
+			   << " CONCAT OPERAND = " << operand_val->getStringRep()
+		       << " BAND";
+
 	WolUnionValueImplSptr result = makeUnionImpl ();
 
 	for (auto it = union_val->begin(); it != union_val->end(); it++) {
@@ -3869,7 +4355,12 @@ WolEvalFactoryImpl::evalBackUnionAndConcat(WolValueImplSptr op_val,
 		if (andValue) result->addValue(andValue);
 	}
 
-	if (result->numValues() == 0) return nullptr;
+	if (result->numValues() == 0) {
+		DEBUG3_MSG << "RESULT = EMPTY";
+		return nullptr;
+	}
+
+	DEBUG3_MSG << "RESULT = " << result->getStringRep();
 	return result;
 }
 
@@ -3880,6 +4371,10 @@ WolEvalFactoryImpl::evalBackConcatAndConcat(WolValueImplSptr op_val,
 	WolConcatValueImplSptr concat1 = dConcatCast(op_val);
 	WolConcatValueImplSptr concat2 = dConcatCast(operand_val);
 
+	DEBUG3_MSG << "CONCAT OP = " << op_val->getStringRep()
+			   << " CONCAT OPERAND = " << operand_val->getStringRep()
+		       << " BAND";
+
 	assert(concat1->numValues() > 1);
 	assert(concat2->numValues() > 1);
 
@@ -3888,19 +4383,25 @@ WolEvalFactoryImpl::evalBackConcatAndConcat(WolValueImplSptr op_val,
 
 	if (firstPrecision1 < firstPrecision2) {
 		WolValueImplSptr split = concat2->split(firstPrecision1);
-		return evalAndBInt(concat1, split);
+		auto result = evalAndBInt(concat1, split);
+		DEBUG3_MSG << "RESULT = " << result->getStringRep();
+		return result;
 	}
 	else if (firstPrecision1 > firstPrecision2) {
 		WolValueImplSptr split = concat1->split(firstPrecision2);
-		return evalAndBInt(split, concat2);
-
+		auto result = evalAndBInt(split, concat2);
+		DEBUG3_MSG << "RESULT = " << result->getStringRep();
+		return result;
 	}
 	else {
 		WolValueImplSptr left1 = concat1->getValue(0);
 		WolValueImplSptr left2 = concat2->getValue(0);
 		WolValueImplSptr leftResult = evalAndBInt(left1, left2);
 
-		if (!leftResult) return nullptr;
+		if (!leftResult) {
+			DEBUG3_MSG << "RESULT = EMPTY";
+			return nullptr;
+		}
 
 		WolValueImplSptr rightResult = nullptr;
 		if (concat1->numValues() == 2) {
@@ -3928,6 +4429,7 @@ WolEvalFactoryImpl::evalBackConcatAndConcat(WolValueImplSptr op_val,
 		WolConcatValueImplSptr result = makeConcatImpl();
 		result->addValue(leftResult);
 		result->addValue(rightResult);
+		DEBUG3_MSG << "RESULT = " << result->getStringRep();
 		return result;
 	}
 
@@ -3942,6 +4444,10 @@ WolEvalFactoryImpl::evalBackRangeAndConst(WolValueImplSptr op_val,
 	WolRangeValueImplSptr range_val = dRangeCast(op_val);
 	WolConstValueImplSptr const_val = dConstCast(operand_val);
 
+	DEBUG3_MSG << "RANGE OP = " << op_val->getStringRep()
+			   << " CONST OPERAND = " << operand_val->getStringRep()
+		       << " BAND";
+
 	int size = const_val->_value.size();
 	if (!range_val->isFull()){
 		int position = range_val->OptimalSplitPosition();
@@ -3949,9 +4455,12 @@ WolEvalFactoryImpl::evalBackRangeAndConst(WolValueImplSptr op_val,
 		auto rangeSplit = range_val->split(position);
 		auto constSplit = const_val->split(position);
 
-		return evalAndBInt(rangeSplit, constSplit);
+		auto result = evalAndBInt(rangeSplit, constSplit);
+		DEBUG3_MSG << "RESULT = " << result->getStringRep();
+		return result;
 	}
 	else {
+		DEBUG3_MSG << "RESULT = " << range_val->getStringRep();
 		return range_val;
 	}
 
@@ -3966,6 +4475,10 @@ WolEvalFactoryImpl::evalBackUnionAndConst(WolValueImplSptr op_val,
 	WolUnionValueImplSptr union_val = dUnionCast(op_val);
 	WolConstValueImplSptr const_val = dConstCast(operand_val);
 
+	DEBUG3_MSG << "UNION OP = " << op_val->getStringRep()
+			   << " CONST OPERAND = " << operand_val->getStringRep()
+		       << " BAND";
+
 	WolUnionValueImplSptr result = makeUnionImpl ();
 	for (auto it = union_val->begin(); it != union_val->end(); it++) {
 		WolValueImplSptr andValue = evalAndBInt(*it, const_val);
@@ -3976,8 +4489,12 @@ WolEvalFactoryImpl::evalBackUnionAndConst(WolValueImplSptr op_val,
 		}
 	}
 
-	if (result->numValues() == 0)
+	if (result->numValues() == 0) {
+		DEBUG3_MSG << "RESULT = EMPTY";
 		return nullptr;
+	}
+
+	DEBUG3_MSG << "RESULT = " << result->getStringRep();
 	return result;
 }
 

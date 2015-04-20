@@ -3,8 +3,8 @@
 
 #include <iostream>
 #include <sstream>
-#include "wolvalue.h"
-#include "common.h"
+#include "../wolvalue.h"
+#include "../common.h"
 #include <boost/dynamic_bitset.hpp>
 
 namespace wolver

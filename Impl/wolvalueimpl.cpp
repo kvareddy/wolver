@@ -1,13 +1,13 @@
 #include "wolvalueimpl.h"
 #include "wolevalfactoryimpl.h"
-#include "wolvalue.h"
-#include "wolutil.h"
-#include "wolmgr.h"
-#include "wollog.h"
-#include "wolevalfactory.h"
+#include "../wolvalue.h"
+#include "../wolutil.h"
+#include "../wolmgr.h"
+#include "../wollog.h"
+#include "../wolevalfactory.h"
 #include <boost/dynamic_bitset.hpp>
 #include <boost/ref.hpp>
-#include "common.h"
+#include "../common.h"
 #include "memory.h"
 #include <random>
 
@@ -570,7 +570,7 @@ namespace wolver
     for (auto i:_values) {
 
       dbitset temp = i->getLowValue();
-      for (int i = 0; i < temp.size(); i++) {
+      for (unsigned i = 0; i < temp.size(); i++) {
 	result[index] = temp[i];
 	index++;
       }
@@ -587,7 +587,7 @@ namespace wolver
     for (auto i:_values) {
 
       dbitset temp = i->getHighValue();
-      for (int i = 0; i < temp.size(); i++) {
+      for (unsigned i = 0; i < temp.size(); i++) {
 	result[index] = temp[i];
 	index++;
       }

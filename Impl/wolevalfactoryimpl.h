@@ -4,8 +4,8 @@
 #include <iostream>
 #include <map>
 #include "wolvalueimpl.h"
-#include "common.h"
-#include "wolevalfactory.h"
+#include "../common.h"
+#include "../wolevalfactory.h"
 
 namespace wolver
 {

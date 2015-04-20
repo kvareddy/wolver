@@ -7,8 +7,8 @@
 #include "wolexpfactory.h"
 #include "wolevalfactory.h"
 #include "wolvaluefactory.h"
-#include "wolvaluefactoryimpl.h"
-#include "wolevalfactoryimpl.h"
+#include "Impl/wolvaluefactoryimpl.h"
+#include "Impl/wolevalfactoryimpl.h"
 #include "wolvarselmgr.h"
 #include "wollog.h"
 //#define CATCH_CONFIG_RUNNER

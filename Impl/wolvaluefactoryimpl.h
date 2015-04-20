@@ -3,8 +3,8 @@
 
 #include <memory>
 #include <string>
-#include "wolvaluefactory.h"
-#include "common.h"
+#include "../wolvaluefactory.h"
+#include "../common.h"
 
 namespace wolver {
 
